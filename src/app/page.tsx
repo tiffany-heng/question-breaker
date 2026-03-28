@@ -25,6 +25,7 @@ export default function QuestionBreaker() {
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile' | null>(null);
   const [status, setStatus] = useState<SessionStatus>('idle');
   const [aiStep, setAiStep] = useState<string>('idle');
+  const [debugLog, setDebugLog] = useState<string>('');
   const [showSolutions, setShowSolutions] = useState<Record<number, boolean>>({});
   const channelRef = useRef<any>(null);
   
@@ -124,10 +125,10 @@ export default function QuestionBreaker() {
       
       setAiStep('Gemini: Logic Received');
       const result = await resp.json();
+      setDebugLog(JSON.stringify(result).slice(0, 200));
       
       if (result.error) {
          setAiStep('Error: ' + result.error);
-         // Don't reset status so the error stays visible
          return;
       }
 

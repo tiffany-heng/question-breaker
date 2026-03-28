@@ -53,14 +53,24 @@ export async function POST(req: NextRequest) {
     });
 
     const proData = await proResp.json();
-    let rawVariations = proData.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+    let rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
-    // SMART PARSE: Strip markdown code blocks if Gemini accidentally included them
-    rawVariations = rawVariations.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    const variations = JSON.parse(rawVariations);
-
-    return NextResponse.json({ extractedText, variations });
+    // BRUTE FORCE PARSE: Find the first '[' and the last ']'
+    try {
+      const start = rawText.indexOf('[');
+      const end = rawText.lastIndexOf(']') + 1;
+      if (start === -1 || end === 0) throw new Error("No JSON array found in response");
+      
+      const jsonString = rawText.slice(start, end);
+      const variations = JSON.parse(jsonString);
+      return NextResponse.json({ extractedText, variations, rawResponse: rawText.slice(0, 100) });
+    } catch (parseErr) {
+      console.error("Parse Error. Raw text was:", rawText);
+      return NextResponse.json({ 
+        error: "Failed to parse AI response", 
+        details: rawText.slice(0, 200) 
+      }, { status: 500 });
+    }
 
   } catch (error: any) {
     console.error('API Error:', error);
