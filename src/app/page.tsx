@@ -1,31 +1,375 @@
 'use client';
-import React, { useState, useEffect } from 'react';
 
-export default function SafePage() {
-  const [msg, setMsg] = useState('JS NOT RUNNING');
+import { useState, useEffect, useRef } from 'react';
+import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
+import { supabase, SESSION_CHANNEL_PREFIX } from '@/lib/supabase';
+import Latex from 'react-latex-next';
+import 'katex/dist/katex.min.css';
+
+// --- Types ---
+type SessionStatus = 'idle' | 'waiting' | 'uploading' | 'processing' | 'ready';
+
+interface QuestionData {
+  imageUrl: string | null;
+  extractedText: string;
+  variations: {
+    category: string;
+    text: string;
+    solution: string;
+  }[];
+}
+
+export default function QuestionBreaker() {
+  // --- State ---
+  const [sessionId, setSessionId] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'desktop' | 'mobile' | null>(null);
+  const [status, setStatus] = useState<SessionStatus>('idle');
+  const [showSolutions, setShowSolutions] = useState<Record<number, boolean>>({});
+  const channelRef = useRef<any>(null);
+  
+  const [data, setData] = useState<QuestionData>({
+    imageUrl: null,
+    extractedText: '',
+    variations: []
+  });
+
+  // --- Real-time Logic ---
 
   useEffect(() => {
-    setMsg('JS IS WORKING!');
+    return () => {
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+    };
   }, []);
 
-  return (
-    <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'sans-serif' }}>
-      <h1 style={{ color: msg === 'JS IS WORKING!' ? 'green' : 'red' }}>
-        {msg}
-      </h1>
-      
-      <div style={{ marginTop: '20px' }}>
-        <button 
-          onClick={() => alert('BUTTON CLICKED!')}
-          style={{ padding: '20px', background: 'blue', color: 'white', border: 'none', borderRadius: '10px', fontSize: '18px' }}
-        >
-          CLICK TO TEST
-        </button>
-      </div>
+  const subscribeToSession = (id: string, isHost: boolean) => {
+    if (!supabase) {
+       console.error("Supabase client not initialized. Check your environment variables.");
+       return;
+    }
 
-      <p style={{ marginTop: '30px', color: '#666' }}>
-        If it stays RED, your phone is blocking the JavaScript bundle from your laptop.
-      </p>
+    const channel = supabase.channel(`${SESSION_CHANNEL_PREFIX}${id}`, {
+      config: { broadcast: { self: true } }
+    });
+
+    channel
+      .on('broadcast', { event: 'IMAGE_UPLOADED' }, ({ payload }) => {
+        setData(prev => ({ ...prev, imageUrl: payload.imageUrl }));
+        if (isHost) handleProcessImage(payload.imageUrl);
+      })
+      .on('broadcast', { event: 'VARIATIONS_READY' }, ({ payload }) => {
+        setData(prev => ({ ...prev, extractedText: payload.extractedText, variations: payload.variations }));
+        setStatus('ready');
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Synced to session:', id);
+          if (!isHost) channel.send({ type: 'broadcast', event: 'USER_JOINED', payload: { device: 'mobile' } });
+        }
+      });
+
+    channelRef.current = channel;
+  };
+
+  const generateId = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const part1 = Array.from({ length: 3 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+    const part2 = Array.from({ length: 3 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+    return `${part1}-${part2}`;
+  };
+
+  const startSession = () => {
+    const newId = generateId();
+    setSessionId(newId);
+    setViewMode('desktop');
+    setStatus('waiting');
+    subscribeToSession(newId, true);
+  };
+
+  const joinSession = (id: string) => {
+    let cleanId = id.toUpperCase().replace(/[^A-Z0-9]/g, ''); 
+    if (cleanId.length === 6) {
+      cleanId = `${cleanId.slice(0, 3)}-${cleanId.slice(3)}`;
+    }
+
+    if (cleanId.length === 7) {
+      setSessionId(cleanId);
+      setViewMode('mobile');
+      setStatus('waiting');
+      subscribeToSession(cleanId, false);
+    } else {
+      alert("Please enter a 6-digit session ID.");
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !sessionId) return;
+
+    setStatus('uploading');
+    
+    try {
+      const fileName = `${sessionId}/${Date.now()}-${file.name}`;
+      const { data: uploadData, error } = await supabase.storage
+        .from('questions')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage.from('questions').getPublicUrl(fileName);
+
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'IMAGE_UPLOADED',
+        payload: { imageUrl: publicUrl }
+      });
+
+      setStatus('processing');
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      alert('Upload failed: ' + err.message);
+      setStatus('waiting');
+    }
+  };
+
+  const handleProcessImage = async (url: string) => {
+    setStatus('processing');
+    try {
+      const resp = await fetch('/api/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: url })
+      });
+      
+      const result = await resp.json();
+      
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'VARIATIONS_READY',
+        payload: result
+      });
+
+    } catch (err) {
+      console.error('AI Processing failed:', err);
+      setStatus('waiting');
+    }
+  };
+
+  const toggleSolution = (index: number) => {
+    setShowSolutions(prev => ({ ...prev, [index]: !prev[index] }));
+  };
+
+  // --- Views ---
+
+  if (viewMode === null) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-slate-900 font-sans">
+        <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-black tracking-tight text-indigo-600 italic">QB.</h1>
+            <p className="text-slate-500 font-medium">Question Breaker</p>
+          </div>
+
+          <div className="grid gap-4 pt-4">
+            <button 
+              onClick={startSession}
+              className="group flex items-center justify-between w-full p-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-200"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <Columns2 size={24} />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-lg">Host Session</div>
+                  <div className="text-indigo-100 text-sm">On your laptop</div>
+                </div>
+              </div>
+              <ChevronRight className="opacity-50 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-semibold tracking-wider">or</span></div>
+            </div>
+
+            <div className="space-y-3">
+              <input 
+                type="text" 
+                placeholder="Enter ID (e.g. XJ3-921)"
+                className="w-full p-4 rounded-xl border-2 border-slate-100 focus:border-indigo-500 focus:ring-0 transition-colors text-center font-mono text-xl uppercase tracking-widest"
+                onChange={(e) => setSessionId(e.target.value.toUpperCase())}
+                value={sessionId}
+              />
+              <button 
+                onClick={() => joinSession(sessionId)}
+                className="w-full p-5 bg-indigo-600 text-white rounded-2xl font-black text-lg active:scale-90 transition-all shadow-xl shadow-indigo-100"
+              >
+                Join Session
+              </button>
+              <p className="text-center text-xs text-slate-400 font-medium italic">Join from phone to upload questions</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (viewMode === 'mobile') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col text-slate-900 font-sans">
+        <header className="p-4 border-b flex justify-between items-center bg-slate-50/50">
+          <div className="font-bold text-indigo-600">QB Mobile</div>
+          <div className="px-3 py-1 bg-white border rounded-full text-xs font-mono font-bold text-slate-500 tracking-wider uppercase">
+            ID: {sessionId}
+          </div>
+        </header>
+
+        <main className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 text-center">
+          {status === 'processing' || status === 'uploading' ? (
+            <div className="space-y-4">
+              <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto" />
+              <p className="font-bold text-lg">{status === 'uploading' ? 'Uploading Image...' : 'AI is Thinking...'}</p>
+              <p className="text-slate-400 text-sm">Check your laptop screen for results.</p>
+            </div>
+          ) : status === 'ready' ? (
+            <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                <CheckCircle2 size={32} />
+              </div>
+              <h2 className="text-2xl font-bold">Variations Ready!</h2>
+              <button 
+                onClick={() => setStatus('waiting')}
+                className="p-4 bg-indigo-600 text-white rounded-2xl font-bold w-full"
+              >
+                Upload Another
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 shadow-inner">
+                <Camera size={40} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold tracking-tight">Snap a Question</h2>
+                <p className="text-slate-500 max-w-[250px] mx-auto text-sm">Take a clear photo of the problem you want to break.</p>
+              </div>
+              <label className="flex items-center justify-center w-full gap-3 p-5 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-indigo-100 active:scale-95 transition-transform cursor-pointer">
+                <Camera size={20} />
+                Open Camera
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} />
+              </label>
+            </>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">
+      <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xs italic">QB</div>
+          <span className="font-bold tracking-tight text-lg">Question Breaker</span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-100 rounded-full text-sm">
+            <span className="text-slate-400 font-medium text-xs uppercase tracking-wider">Session ID:</span>
+            <span className="font-mono font-bold text-indigo-600 uppercase tracking-widest">{sessionId}</span>
+          </div>
+          <button onClick={() => window.location.reload()} className="text-xs font-semibold text-slate-400 hover:text-slate-600">End Session</button>
+        </div>
+      </header>
+
+      <main className="flex-1 flex overflow-hidden">
+        <div className="w-1/2 border-r bg-slate-50/50 flex flex-col relative">
+          {data.imageUrl ? (
+            <div className="flex-1 p-8 animate-in fade-in zoom-in duration-700">
+               <img src={data.imageUrl} alt="Uploaded Question" className="w-full h-full object-contain rounded-2xl shadow-2xl shadow-indigo-100" />
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center p-12 text-center">
+              <div className="space-y-6 max-w-xs">
+                <div className="w-20 h-20 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto text-indigo-500">
+                  <Smartphone className="animate-bounce" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-lg text-indigo-900">Connect Your Phone</h4>
+                  <p className="text-slate-400 text-sm mt-1 leading-relaxed">Join session <span className="font-bold text-indigo-600 underline">{sessionId}</span> on your phone to upload.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {status === 'processing' && (
+             <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-20">
+                <div className="text-center space-y-4">
+                  <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mx-auto" />
+                  <p className="font-bold text-indigo-900 tracking-tight">Gemini 3.1 is analyzing...</p>
+                </div>
+             </div>
+          )}
+        </div>
+
+        <div className="w-1/2 bg-white flex flex-col overflow-y-auto">
+          <div className="p-4 border-b sticky top-0 bg-white/90 backdrop-blur z-10 flex justify-between items-center px-8">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Logic Variations</h3>
+            <div className="flex items-center gap-2 px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-[10px] font-bold uppercase tracking-tighter shadow-sm">
+              Gemini 3.1 Pro
+            </div>
+          </div>
+
+          <div className="p-8 space-y-12">
+            {status === 'ready' ? (
+              <div className="space-y-10 pb-20">
+                {data.variations.map((v, i) => (
+                  <div key={i} className="group space-y-4 animate-in fade-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${i * 150}ms` }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded uppercase tracking-wider">{v.category}</span>
+                      <div className="h-px flex-1 bg-slate-100"></div>
+                    </div>
+                    <div className="text-slate-700 leading-relaxed text-lg prose prose-indigo">
+                      <Latex>{v.text}</Latex>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <button 
+                        onClick={() => toggleSolution(i)}
+                        className="flex items-center gap-2 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 px-4 py-2 rounded-full active:scale-95"
+                      >
+                        {showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}
+                      </button>
+                      
+                      {showSolutions[i] && (
+                        <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 animate-in zoom-in-95 duration-200 shadow-inner">
+                          <div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest">Pedagogical Solution</div>
+                          <div className="prose prose-slate max-w-none text-base">
+                            <Latex>{v.solution}</Latex>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (status === 'waiting' && !data.imageUrl) ? (
+              <div className="flex flex-col items-center justify-center h-64 text-slate-100">
+                <Columns2 size={80} className="mb-4" />
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-200">Waiting for Upload</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="space-y-3 animate-pulse">
+                    <div className="h-4 w-24 bg-slate-100 rounded"></div>
+                    <div className="h-20 w-full bg-slate-50 rounded-2xl"></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
