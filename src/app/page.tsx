@@ -370,6 +370,13 @@ export default function QuestionBreaker() {
           </div>
         </div>
       </main>
+
+      {/* CONNECTION DOCTOR (Debug Footer) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-900 text-[10px] text-slate-400 p-1 flex justify-around font-mono border-t border-slate-800 z-50">
+        <span>URL: {process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ LOADED' : '❌ MISSING'}</span>
+        <span>KEY LEN: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length || 0}</span>
+        <span>URL MATCH: {process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('tchitstaacfdxaxuvick') ? '✅ YES' : '❌ NO'}</span>
+      </div>
     </div>
   );
 }
