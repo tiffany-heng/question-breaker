@@ -114,20 +114,24 @@ export default function QuestionBreaker() {
 
   const handleProcessImage = async (url: string) => {
     setStatus('processing');
-    setAiStep('Handshake: Starting...');
+    setAiStep('Gemini: Starting Handshake...');
     try {
       const resp = await fetch('/api/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl: url })
       });
-      setAiStep('Handshake: API Connected');
+      
+      setAiStep('Gemini: Logic Received');
       const result = await resp.json();
+      
       if (result.error) {
          setAiStep('Error: ' + result.error);
+         // Don't reset status so the error stays visible
          return;
       }
-      setAiStep('Handshake: Variations Received');
+
+      setAiStep('Gemini: Rendering Variations');
       
       // Update Laptop Locally
       setData(prev => ({ ...prev, extractedText: result.extractedText, variations: result.variations }));
@@ -136,8 +140,9 @@ export default function QuestionBreaker() {
       // Broadcast to Phone
       channelRef.current.send({ type: 'broadcast', event: 'VARIATIONS_READY', payload: result });
     } catch (err: any) {
-      setAiStep('Handshake: Failed - ' + err.message);
-      setStatus('waiting');
+      setAiStep('Gemini: Failed - ' + err.message);
+      // Let the error stay on screen for a moment
+      setTimeout(() => setStatus('waiting'), 3000);
     }
   };
 
