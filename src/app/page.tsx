@@ -209,9 +209,28 @@ export default function QuestionBreaker() {
             </div>
           )}
           {status === 'processing' && (
-             <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4">
-                <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold">Gemini is analyzing...</p>
-                <p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-slate-100 px-3 py-1 rounded-full">{aiStep}</p>
+             <div className="absolute inset-0 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center z-20 p-10 space-y-6">
+                <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
+                <div className="text-center">
+                  <p className="font-black text-xl text-indigo-900 tracking-tight">Gemini is Thinking...</p>
+                  <p className="text-sm font-bold text-indigo-400 uppercase tracking-widest mt-1">{aiStep}</p>
+                </div>
+
+                {debugLog && (
+                  <div className="w-full max-w-md bg-slate-900 rounded-2xl p-6 shadow-2xl border border-white/20 overflow-hidden">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Raw AI Output (Debug)</span>
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-slate-300 font-mono leading-relaxed break-all whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                      {debugLog}
+                    </div>
+                  </div>
+                )}
              </div>
           )}
         </div>
