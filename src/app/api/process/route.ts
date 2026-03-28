@@ -7,7 +7,7 @@ const PRO_MODEL = 'gemini-1.5-pro';
 export async function POST(req: NextRequest) {
   try {
     const { imageUrl } = await req.json();
-    if (!GEMINI_API_KEY) return NextResponse.json({ error: 'Key missing' }, { status: 500 });
+    if (!GEMINI_API_KEY) return NextResponse.json({ error: 'Key missing' });
 
     // 1. Fetch Image
     const imageResp = await fetch(imageUrl);
@@ -19,10 +19,13 @@ export async function POST(req: NextRequest) {
     const flashResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${FLASH_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(flashBody)
     });
+    
     const flashData = await flashResp.json();
+    if (flashData.error) return NextResponse.json({ error: "Flash Error", raw: JSON.stringify(flashData.error) });
+    
     const extractedText = flashData.candidates?.[0]?.content?.parts?.[0]?.text || '[No text found]';
 
-    // 3. Generate Variations (Pro) with FORCED JSON MODE
+    // 3. Generate Variations (Pro)
     const reasoningPrompt = `
       You are a Pedagogical Engineer. Generate 4 distinct variations of this question: "${extractedText}".
       Return a JSON array of objects with keys: "category", "text", "solution".
@@ -39,28 +42,22 @@ export async function POST(req: NextRequest) {
     });
 
     const proData = await proResp.json();
+    if (proData.error) return NextResponse.json({ error: "Pro Error", raw: JSON.stringify(proData.error) });
+
     const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     try {
       let variations = JSON.parse(rawText);
-      
-      // If AI returned an object like {"variations": [...]}, extract the array
       if (!Array.isArray(variations)) {
         const possibleArray = Object.values(variations).find(val => Array.isArray(val));
-        if (possibleArray) {
-          variations = possibleArray;
-        } else {
-          // If it's just a single object, wrap it in an array
-          variations = [variations];
-        }
+        variations = possibleArray || [variations];
       }
-      
       return NextResponse.json({ extractedText, variations });
     } catch (e) {
-      return NextResponse.json({ error: "JSON Parse Error", raw: rawText.substring(0, 500) });
+      return NextResponse.json({ error: "JSON Parse Error", raw: "RAW: " + rawText });
     }
 
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: "Server Crash", raw: err.message });
   }
 }
