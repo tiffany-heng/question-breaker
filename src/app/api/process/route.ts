@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Using the most stable model identifiers
 const FLASH_MODEL = 'gemini-1.5-flash';
 const PRO_MODEL = 'gemini-1.5-pro';
 
@@ -11,12 +12,14 @@ export async function POST(req: NextRequest) {
 
     // 1. Fetch Image
     const imageResp = await fetch(imageUrl);
-    const imageBlob = await imageResp.blob();
-    const base64Image = Buffer.from(await imageBlob.arrayBuffer()).toString('base64');
+    const arrayBuffer = await imageResp.arrayBuffer();
+    const base64Image = Buffer.from(arrayBuffer).toString('base64');
 
     // 2. Extract Text (Flash)
     const flashBody = { contents: [{ parts: [{ text: "EXTRACT ALL TEXT FROM THIS IMAGE. DO NOT SOLVE. Preserve LaTeX." }, { inline_data: { mime_type: 'image/jpeg', data: base64Image } }] }] };
-    const flashResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${FLASH_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+    
+    // SWITCHING TO V1 STABLE API
+    const flashResp = await fetch(`https://generativelanguage.googleapis.com/v1/models/${FLASH_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(flashBody)
     });
     
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
       generationConfig: { response_mime_type: "application/json" } 
     };
 
-    const proResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${PRO_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+    const proResp = await fetch(`https://generativelanguage.googleapis.com/v1/models/${PRO_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(proBody)
     });
 
