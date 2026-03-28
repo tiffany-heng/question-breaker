@@ -60,7 +60,7 @@ export default function QuestionBreaker() {
         setData(prev => ({ ...prev, extractedText: payload.extractedText, variations: payload.variations }));
         setStatus('ready');
       })
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           console.log('Synced to session:', id);
           if (!isHost) channel.send({ type: 'broadcast', event: 'USER_JOINED', payload: { device: 'mobile' } });
