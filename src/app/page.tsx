@@ -52,11 +52,11 @@ export default function QuestionBreaker() {
     });
 
     channel
-      .on('broadcast', { event: 'IMAGE_UPLOADED' }, ({ payload }) => {
+      .on('broadcast', { event: 'IMAGE_UPLOADED' }, ({ payload }: { payload: { imageUrl: string } }) => {
         setData(prev => ({ ...prev, imageUrl: payload.imageUrl }));
         if (isHost) handleProcessImage(payload.imageUrl);
       })
-      .on('broadcast', { event: 'VARIATIONS_READY' }, ({ payload }) => {
+      .on('broadcast', { event: 'VARIATIONS_READY' }, ({ payload }: { payload: any }) => {
         setData(prev => ({ ...prev, extractedText: payload.extractedText, variations: payload.variations }));
         setStatus('ready');
       })
