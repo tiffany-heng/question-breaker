@@ -24,6 +24,7 @@ export default function QuestionBreaker() {
   const [sessionId, setSessionId] = useState<string>('');
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile' | null>(null);
   const [status, setStatus] = useState<SessionStatus>('idle');
+  const [aiStep, setAiStep] = useState<string>('idle');
   const [showSolutions, setShowSolutions] = useState<Record<number, boolean>>({});
   const channelRef = useRef<any>(null);
   
@@ -130,29 +131,39 @@ export default function QuestionBreaker() {
       setStatus('waiting');
     }
   };
+const handleProcessImage = async (url: string) => {
+  setStatus('processing');
+  setAiStep('Handshake: Starting...');
+  try {
+    const resp = await fetch('/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl: url })
+    });
 
-  const handleProcessImage = async (url: string) => {
-    setStatus('processing');
-    try {
-      const resp = await fetch('/api/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: url })
-      });
-      
-      const result = await resp.json();
-      
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'VARIATIONS_READY',
-        payload: result
-      });
+    setAiStep('Handshake: API Connected');
+    const result = await resp.json();
 
-    } catch (err) {
-      console.error('AI Processing failed:', err);
-      setStatus('waiting');
+    if (result.error) {
+       setAiStep('Error: ' + result.error);
+       return;
     }
-  };
+
+    setAiStep('Handshake: Variations Received');
+
+    // Broadcast results back to mobile too
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'VARIATIONS_READY',
+      payload: result
+    });
+
+  } catch (err: any) {
+    console.error('AI Processing failed:', err);
+    setAiStep('Handshake: Failed - ' + err.message);
+    setStatus('waiting');
+  }
+};
 
   const toggleSolution = (index: number) => {
     setShowSolutions(prev => ({ ...prev, [index]: !prev[index] }));
@@ -305,6 +316,7 @@ export default function QuestionBreaker() {
                 <div className="text-center space-y-4">
                   <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mx-auto" />
                   <p className="font-bold text-indigo-900 tracking-tight">Gemini 3.1 is analyzing...</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-slate-100 px-3 py-1 rounded-full">{aiStep}</p>
                 </div>
              </div>
           )}
