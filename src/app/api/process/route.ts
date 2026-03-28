@@ -42,10 +42,22 @@ export async function POST(req: NextRequest) {
     const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     try {
-      const variations = JSON.parse(rawText);
+      let variations = JSON.parse(rawText);
+      
+      // If AI returned an object like {"variations": [...]}, extract the array
+      if (!Array.isArray(variations)) {
+        const possibleArray = Object.values(variations).find(val => Array.isArray(val));
+        if (possibleArray) {
+          variations = possibleArray;
+        } else {
+          // If it's just a single object, wrap it in an array
+          variations = [variations];
+        }
+      }
+      
       return NextResponse.json({ extractedText, variations });
     } catch (e) {
-      return NextResponse.json({ error: "JSON Parse Error", raw: rawText.substring(0, 300) });
+      return NextResponse.json({ error: "JSON Parse Error", raw: rawText.substring(0, 500) });
     }
 
   } catch (err: any) {

@@ -129,6 +129,7 @@ export default function QuestionBreaker() {
       
       if (result.error) {
          setAiStep('Error: ' + result.error);
+         if (result.raw) setDebugLog(result.raw);
          return;
       }
 
