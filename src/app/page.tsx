@@ -206,7 +206,9 @@ export default function QuestionBreaker() {
     }
 
     try {
-      setAiStep('Processing Images & OCR...');
+      const hasImages = (!isQuestionTextMode && data.questionImageUrl) || (isSolutionEnabled && !isSolutionTextMode && data.solutionImageUrl);
+      setAiStep(hasImages ? 'Processing Images & OCR...' : 'Analyzing Question Text...');
+      
       const resp = await fetch('/api/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
