@@ -162,6 +162,18 @@ export default function QuestionBreaker() {
 
   const saveToDb = async (updates: Partial<QuestionData>, newStatus?: string) => {
     if (!roomId) return null;
+    
+    // Check if we actually have a session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.warn("No active session found. Re-authenticating...");
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+      if (authError) {
+        setDebugLog(`Auth Error: ${authError.message}`);
+        return null;
+      }
+    }
+
     const payload: any = {
       room_id: roomId,
       question_image_url: updates.questionImageUrl ?? data.questionImageUrl,
