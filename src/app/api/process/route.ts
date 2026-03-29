@@ -115,13 +115,17 @@ export async function POST(req: NextRequest) {
     console.log("AI Pipeline: Raw Text Length:", rawText.length);
 
     try {
-      let variations = JSON.parse(rawText);
+      // Clean up the response in case it's wrapped in markdown backticks
+      const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+      let variations = JSON.parse(cleanJson);
+      
       if (!Array.isArray(variations)) {
         const possibleArray = Object.values(variations).find(val => Array.isArray(val));
         variations = possibleArray || [variations];
       }
       return NextResponse.json({ extractedText: finalQuestionText, variations });
     } catch (e) {
+      console.error("AI Pipeline: JSON Parse Error", e);
       return NextResponse.json({ error: "JSON Error", raw: rawText });
     }
   } catch (err: any) {
