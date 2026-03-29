@@ -1,22 +1,37 @@
 # Question Breaker: Project Documentation
 
-## Current Status: ✅ MVP LIVE
-The application is fully functional and deployed on Vercel. 
-- **Desktop:** Host sessions, generates ID, displays AI results.
-- **Mobile:** Joins sessions, uploads photos via Supabase Storage.
-- **AI:** Integrated with Gemini 2.5 Flash (OCR) and Gemini 3.1 Flash Lite (Reasoning).
+## Current Status: ✅ MVP LIVE & SECURED
+The application is a cross-device pedagogical tool using Supabase Realtime and Gemini 3.1.
 
-## Core Features (Working)
-1. **Real-time Sync:** Uses Supabase Broadcast for instant phone-to-laptop updates.
-2. **JSON Mode AI:** Forced JSON output for reliable variation generation.
-3. **LaTeX Support:** Math formulas rendered via `react-latex-next`.
+## Core Architecture
+1.  **Persistent Room System:**
+    *   **Auth:** `supabase.auth.signInAnonymously()` links Laptop, Phone, and iPad to the same User ID.
+    *   **Tables:**
+        *   `rooms`: Manages 6-digit pairing codes and ownership.
+        *   `questions`: Stores images, raw text, and AI-generated variations.
+    *   **Sync:** `postgres_changes` listener ensures that if you type on a laptop, the phone screen updates instantly.
 
-## Deployment Info
-- **URL:** [Your Vercel URL]
-- **Environment Variables:** `GEMINI_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+2.  **Universal Dashboard:**
+    *   All devices see the professional split-screen view.
+    *   **Dual-Mode Input:** Toggle between "Snap Image" and "Type Text" for both Questions and Solutions.
+    *   **Mode Syncing:** If one device switches to "Text Mode," all others follow suit upon hitting "Submit."
 
-## Tomorrow's Tasks (March 29, 2026)
-- [ ] **Output Quality:** Refine the reasoning prompt for better "Pedagogical" variations.
-- [ ] **Interface:** Polish the Tailwind styles and remove debug "Connection Doctor" UI.
-- [ ] **Bugs:** Audit session cleanup and storage management.
-- [ ] **Feature:** Add QR Code for faster mobile joining.
+3.  **AI Logic (Gemini 3.1 + 2.5):**
+    *   **OCR:** `gemini-2.5-flash-lite` extracts text from question/solution images.
+    *   **Reasoning:** `gemini-3.1-flash-lite-preview` generates 4 variations (Conceptual Flip, Constraint Change, etc.).
+    *   **Formatting:** Strict LaTeX support and option-by-option distractor analysis for MCQs.
+
+## Deployment & Environment
+*   **Vercel:** Deployed with `GEMINI_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+*   **Supabase Storage:** Public bucket `questions` with RLS policies allowing authenticated uploads.
+
+## Technical Rules (For Future Reference)
+*   **Dependency:** Always use `--legacy-peer-deps` for npm.
+*   **Database Fixes:** If RLS fails, ensure policies include `WITH CHECK (true)` for inserts.
+*   **Realtime:** Tables `rooms` and `questions` must be added to the `supabase_realtime` publication.
+*   **Manual Trigger:** The AI only runs when the user clicks "Submit to Gemini" to prevent loopbacks.
+
+## Next Steps
+- [ ] Debug the "Handshaking with Gemini" hang (suspect Vercel timeout or model availability).
+- [ ] Add QR Code generation for the 6-digit room code.
+- [ ] Implement a "Session History" sidebar to toggle between previous questions.
