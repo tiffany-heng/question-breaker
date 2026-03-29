@@ -64,7 +64,10 @@ export default function QuestionBreaker() {
   useEffect(() => {
     const bootstrap = async () => {
       // Ensure Auth first
-      await supabase.auth.signInAnonymously();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        await supabase.auth.signInAnonymously();
+      }
       
       const savedRoomId = localStorage.getItem('qb_active_room_id');
       const savedCode = localStorage.getItem('qb_pairing_code');
@@ -124,15 +127,20 @@ export default function QuestionBreaker() {
   const createRoom = async () => {
     try {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const { data: { user } } = await supabase.auth.getUser();
       
+      // Ensure we have a user session first
+      let { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        await supabase.auth.signInAnonymously();
+        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+        if (authError) throw authError;
+        user = authData.user;
       }
+
+      if (!user) throw new Error("Could not initialize anonymous user.");
 
       const { data: room, error } = await supabase
         .from('rooms')
-        .insert([{ owner_id: user?.id, pairing_code: code }])
+        .insert([{ owner_id: user.id, pairing_code: code }])
         .select()
         .single();
 
@@ -224,10 +232,12 @@ export default function QuestionBreaker() {
   const uploadToSupabase = async (file: File, type: ImageType) => {
     try {
       const fileName = `${roomId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-      const { error } = await supabase.storage.from('questions').upload(fileName, file);
-      if (error) throw error;
+      const { error: uploadError } = await supabase.storage.from('questions').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      
       const { data: { publicUrl } } = supabase.storage.from('questions').getPublicUrl(fileName);
       
+      // Save to DB to trigger sync
       const updates = type === 'question' ? { questionImageUrl: publicUrl } : { solutionImageUrl: publicUrl };
       await saveToDb(updates, 'waiting');
       
@@ -308,19 +318,19 @@ export default function QuestionBreaker() {
           
           <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
             {/* INPUT SIDE (Left on Desktop, Top on Mobile) */}
-            <div className="w-full md:w-1/2 border-r bg-slate-50/50 flex flex-col relative overflow-y-auto pb-40">
+            <div className="w-full md:w-1/2 border-r bg-slate-50/50 flex flex-col relative overflow-y-auto pb-40 text-left">
               <div className="p-8 space-y-10">
                 {/* QUESTION ZONE */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> The Question</h4><div className="flex items-center gap-2"><button onClick={() => setIsQuestionTextMode(!isQuestionTextMode)} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">{isQuestionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>{(data.questionImageUrl || data.questionText) && <button onClick={() => { setData(p => ({ ...p, questionImageUrl: null, questionText: '' })); saveToDb({ questionImageUrl: null, questionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
-                  {isQuestionTextMode ? ( <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, questionText: v })); saveToDb({ questionText: v }); }} className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white mx-auto" /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center">Click or Paste Question Image</span></button> ) )}
+                  {isQuestionTextMode ? ( <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, questionText: v })); saveToDb({ questionText: v }); }} className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white mx-auto" /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Question Image</span></button> ) )}
                 </div>
                 {/* SOLUTION ZONE */}
-                <div className="space-y-3 text-left">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> Solution Reference</h4><div className="flex items-center gap-2">{isSolutionEnabled && <button onClick={() => setIsSolutionTextMode(!isSolutionTextMode)} className="text-[10px] font-black uppercase text-indigo-400 hover:underline">{isSolutionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>}{isSolutionEnabled && <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
                   {!isSolutionEnabled ? ( <button onClick={() => setIsSolutionEnabled(true)} className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 flex items-center justify-center gap-3 hover:bg-white hover:border-indigo-100 transition-all group"><PlusCircle size={20} className="group-hover:rotate-90 transition-transform" /><span className="text-[10px] font-black uppercase tracking-widest">Add Solution Context (Optional)</span></button> ) : ( isSolutionTextMode ? ( <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, solutionText: v })); saveToDb({ solutionText: v }); }} className="w-full min-h-[150px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto" /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Solution Image</span></button> ) ) )}
                 </div>
-                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap text-left"><div className="font-bold uppercase mb-1">Diagnostic Info:</div>{debugLog}</div>}
+                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap"><div className="font-bold uppercase mb-1">Diagnostic Info:</div>{debugLog}</div>}
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center">
                 {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && ( <button onClick={handleProcessWithAI} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all"><BrainCircuit className="text-indigo-400 group-hover:rotate-12 transition-transform" />Submit to Gemini 3.1</button> )}
