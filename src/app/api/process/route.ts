@@ -102,8 +102,17 @@ export async function POST(req: NextRequest) {
       })
     });
 
+    console.log("AI Pipeline: Reasoning Request Sent.");
     const proData = await proResp.json();
+    console.log("AI Pipeline: Reasoning Response Received.");
+    
+    if (proData.error) {
+      console.error("AI Pipeline: Gemini Error:", proData.error);
+      return NextResponse.json({ error: "Gemini Error", raw: JSON.stringify(proData.error) });
+    }
+
     const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log("AI Pipeline: Raw Text Length:", rawText.length);
 
     try {
       let variations = JSON.parse(rawText);
