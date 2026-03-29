@@ -18,9 +18,13 @@ async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promis
 }
 
 export async function POST(req: NextRequest) {
+  console.log("AI Pipeline: Starting request...");
   try {
     const { questionImageUrl, questionText, solutionImageUrl, solutionText } = await req.json();
-    if (!GEMINI_API_KEY) return NextResponse.json({ error: 'Key missing' });
+    if (!GEMINI_API_KEY) {
+      console.error("AI Pipeline: Missing GEMINI_API_KEY");
+      return NextResponse.json({ error: 'Key missing' });
+    }
 
     let finalQuestionText = questionText || '';
     let finalSolutionText = solutionText || '';
@@ -28,15 +32,25 @@ export async function POST(req: NextRequest) {
     // --- STEP 1: OCR ---
     const imagesToProcess: { mime_type: string, data: string }[] = [];
     if (!finalQuestionText && questionImageUrl) {
+      console.log("AI Pipeline: Fetching question image...");
       const qResp = await fetch(questionImageUrl);
-      if (qResp.ok) imagesToProcess.push({ mime_type: 'image/jpeg', data: Buffer.from(await qResp.arrayBuffer()).toString('base64') });
+      if (qResp.ok) {
+        imagesToProcess.push({ mime_type: 'image/jpeg', data: Buffer.from(await qResp.arrayBuffer()).toString('base64') });
+        console.log("AI Pipeline: Question image loaded.");
+      }
     }
+
     if (!finalSolutionText && solutionImageUrl && solutionImageUrl.startsWith('http')) {
+      console.log("AI Pipeline: Fetching solution image...");
       const sResp = await fetch(solutionImageUrl);
-      if (sResp.ok) imagesToProcess.push({ mime_type: 'image/jpeg', data: Buffer.from(await sResp.arrayBuffer()).toString('base64') });
+      if (sResp.ok) {
+        imagesToProcess.push({ mime_type: 'image/jpeg', data: Buffer.from(await sResp.arrayBuffer()).toString('base64') });
+        console.log("AI Pipeline: Solution image loaded.");
+      }
     }
 
     if (imagesToProcess.length > 0) {
+      console.log(`AI Pipeline: Starting OCR with ${OCR_MODEL}...`);
       const flashParts: any[] = imagesToProcess.map(img => ({ inline_data: img }));
       flashParts.push({ text: "EXTRACT ALL TEXT. QUESTION first, then SOLUTION. Preserve LaTeX. DO NOT SOLVE." });
 
@@ -45,13 +59,19 @@ export async function POST(req: NextRequest) {
       });
       const flashData = await flashResp.json();
       const ocrResult = flashData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log("AI Pipeline: OCR Complete. Length:", ocrResult.length);
       if (!finalQuestionText) finalQuestionText = ocrResult;
     }
 
-    if (!finalQuestionText) return NextResponse.json({ error: "No content found" });
+    if (!finalQuestionText) {
+      console.warn("AI Pipeline: No question text found after OCR.");
+      return NextResponse.json({ error: "No content found" });
+    }
 
-    // --- STEP 2: Reasoning (Pedagogical Architect) ---
-    const reasoningPrompt = `
+    // --- STEP 2: Reasoning ---
+    console.log(`AI Pipeline: Starting Reasoning with ${REASONING_MODEL}...`);
+    const reasoningPrompt = `...`; // (rest of prompt remains same)
+
       You are a Senior Pedagogical Architect.
       
       INPUT QUESTION: "${finalQuestionText}"
