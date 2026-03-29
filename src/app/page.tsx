@@ -86,7 +86,7 @@ export default function QuestionBreaker() {
     }
   };
 
-  const updateLocalState = (newData: any) => {
+  const updateLocalState = (newData: any, isRemote = false) => {
     setData({
       id: newData.id,
       questionImageUrl: newData.question_image_url,
@@ -97,9 +97,13 @@ export default function QuestionBreaker() {
       variations: newData.variations || []
     });
     
-    // Auto-switch UI mode to match database
-    setIsQuestionTextMode(!!newData.is_question_text_mode);
-    setIsSolutionTextMode(!!newData.is_solution_text_mode);
+    // ONLY switch UI modes if the change came from a remote device.
+    // This prevents "focus stealing" or immediate mode-switches on the local device.
+    if (isRemote) {
+      setIsQuestionTextMode(!!newData.is_question_text_mode);
+      setIsSolutionTextMode(!!newData.is_solution_text_mode);
+    }
+    
     if (newData.solution_image_url || newData.solution_text) setIsSolutionEnabled(true);
 
     if (newData.status === 'ready') setStatus('ready');
@@ -112,7 +116,8 @@ export default function QuestionBreaker() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'questions', filter: `room_id=eq.${rId}` }, (payload: any) => {
         const newData = payload.new as any;
         if (!newData) return;
-        updateLocalState(newData);
+        // This is a remote update from Supabase
+        updateLocalState(newData, true);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
