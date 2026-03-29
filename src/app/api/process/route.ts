@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       
       4. SOLUTION RIGOR (STRICT):
          - Provide a detailed step-by-step solution matching the reference rigor.
-         - FOR MCQ/MRQ: You MUST explicitly address EVERY option. Explain why the correct ones are correct AND why every incorrect one is wrong (distractor analysis).
+         - FOR MCQ/MRQ: You MUST explicitly address EVERY option. Explain why the correct ones are correct AND why every incorrect one is wrong.
       
       OUTPUT: JSON array of objects with keys "category", "text", "solution".
     `;
