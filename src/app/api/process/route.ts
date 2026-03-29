@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const { questionImageUrl, solutionImageUrl, userSolutionText } = await req.json();
     if (!GEMINI_API_KEY) return NextResponse.json({ error: 'Key missing' });
 
-    // 1. Fetch Question Image (Required)
+    // 1. Fetch Question Image
     const qResp = await fetch(questionImageUrl);
     if (!qResp.ok) return NextResponse.json({ error: "Could not load question image" });
     const qBuffer = await qResp.arrayBuffer();
@@ -30,23 +30,32 @@ export async function POST(req: NextRequest) {
     }
 
     // --- STEP 1: Full Extraction (Flash 2.0) ---
-    const flashParts = [
-      { text: "EXTRACT ALL TEXT FROM THE QUESTION IMAGE. DO NOT SOLVE. Preserve LaTeX." },
+    // Improved Structure: Images first, then instructions
+    const flashParts: any[] = [
       { inline_data: { mime_type: 'image/jpeg', data: qBase64 } }
     ];
     
-    // Only add solution image if we actually have one
     if (sBase64) {
-      flashParts.push({ text: "REFER TO THIS SOLUTION IMAGE IF NEEDED FOR CONTEXT:" });
       flashParts.push({ inline_data: { mime_type: 'image/jpeg', data: sBase64 } });
+      flashParts.push({ text: "The first image is a question. The second image is a solution reference. EXTRACT ALL TEXT FROM BOTH. DO NOT SOLVE. Preserve LaTeX." });
+    } else {
+      flashParts.push({ text: "EXTRACT ALL TEXT FROM THE IMAGE ABOVE. DO NOT SOLVE. Preserve LaTeX." });
     }
 
     const flashResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${FLASH_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: flashParts }] })
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ 
+        contents: [{ role: "user", parts: flashParts }] 
+      })
     });
     
     const flashData = await flashResp.json();
-    if (flashData.error) return NextResponse.json({ error: "Flash Error", raw: JSON.stringify(flashData.error) });
+    if (flashData.error) {
+      console.error("Gemini Flash Error:", flashData.error);
+      return NextResponse.json({ error: "Flash Error", raw: flashData.error.message || JSON.stringify(flashData.error) });
+    }
+    
     const extractedText = flashData.candidates?.[0]?.content?.parts?.[0]?.text || '[No text found]';
 
     // --- STEP 2: Variations (Gemini 3.1 Flash Lite) ---
@@ -63,13 +72,16 @@ export async function POST(req: NextRequest) {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ 
-        contents: [{ parts: [{ text: reasoningPrompt }] }],
+        contents: [{ role: "user", parts: [{ text: reasoningPrompt }] }],
         generationConfig: { response_mime_type: "application/json" }
       })
     });
 
     const proData = await proResp.json();
-    if (proData.error) return NextResponse.json({ error: "Pro Error", raw: JSON.stringify(proData.error) });
+    if (proData.error) {
+      console.error("Gemini Pro Error:", proData.error);
+      return NextResponse.json({ error: "Pro Error", raw: proData.error.message || JSON.stringify(proData.error) });
+    }
 
     const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
@@ -85,6 +97,7 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (err: any) {
+    console.error("Server Crash:", err);
     return NextResponse.json({ error: "Server Crash", raw: err.message });
   }
 }

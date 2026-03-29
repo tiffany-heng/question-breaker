@@ -153,6 +153,33 @@ export default function QuestionBreaker() {
     }
   };
 
+  const handleSkipCrop = async () => {
+    if (!rawFile) return;
+    setStatus('uploading');
+    try {
+      // Force conversion to JPEG even on skip to avoid MIME errors in Gemini
+      const img = new Image();
+      img.src = URL.createObjectURL(rawFile);
+      await new Promise((resolve) => (img.onload = resolve));
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const file = new File([blob], `${activeUploadType}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+          await uploadToSupabase(file, activeUploadType);
+        }
+      }, 'image/jpeg', 0.95);
+    } catch (e) {
+      // Fallback if conversion fails
+      await uploadToSupabase(rawFile, activeUploadType);
+    }
+  };
+
   const uploadToSupabase = async (file: File, type: ImageType) => {
     try {
       const fileName = `${sessionId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
@@ -182,6 +209,7 @@ export default function QuestionBreaker() {
     if (!data.questionImageUrl) return;
     setStatus('processing');
     setAiStep('Connecting to Gemini...');
+    setDebugLog(''); // Clear old logs
     
     const finalSolutionText = isSolutionEnabled ? (solutionNotes || data.userSolutionText) : '';
     const finalSolutionImage = isSolutionEnabled ? data.solutionImageUrl : null;
@@ -235,7 +263,7 @@ export default function QuestionBreaker() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm outline-none h-20" 
               />
             )}
-            <button onClick={() => uploadToSupabase(rawFile!, activeUploadType)} className="w-full p-3 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-white/10">Skip Crop & Upload</button>
+            <button onClick={handleSkipCrop} className="w-full p-3 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-white/10">Skip Crop & Upload</button>
           </div>
         </div>
       )}
@@ -320,6 +348,14 @@ export default function QuestionBreaker() {
                       <button onClick={() => { setData(p => ({ ...p, solutionImageUrl: null })); setIsSolutionEnabled(false); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>
                     </div>
                     {data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80" /> : <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full p-10 bg-white/30 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><ImageIcon size={24} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-[10px] font-bold uppercase tracking-widest text-center px-10">Click or Paste Solution Image</span></button>}
+                  </div>
+                )}
+
+                {/* DEBUG LOG */}
+                {debugLog && (
+                  <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40">
+                    <div className="font-bold uppercase mb-1">Diagnostic Info:</div>
+                    {debugLog}
                   </div>
                 )}
               </div>
