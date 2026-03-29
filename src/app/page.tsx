@@ -199,8 +199,11 @@ export default function QuestionBreaker() {
         })
       });
 
-      setAiStep('Running Pedagogical Reasoning...');
+      // We only move to reasoning AFTER the server responds (which includes OCR and Reasoning)
+      // or we can just say "Running AI Logic..." for the duration of the fetch
+      setAiStep('Generating Variations...');
       const result = await resp.json();
+      
       if (result.error) {
         setAiStep('AI Pipeline Error: ' + result.error);
         if (result.raw) setDebugLog(result.raw);
@@ -210,11 +213,19 @@ export default function QuestionBreaker() {
 
       setAiStep('Finalizing Results...');
       // 2. SAVE RESULTS TO DB (This instantly updates the phone/iPad)
-      await supabase.from('questions').update({
+      const { error: updateError } = await supabase.from('questions').update({
         extracted_text: result.extractedText,
         variations: result.variations,
         status: 'ready'
       }).eq('id', data.id);
+
+      if (updateError) {
+        setAiStep('Database Update Failed');
+        console.error(updateError);
+      } else {
+        setAiStep('Success!');
+        setStatus('ready'); // Explicitly set local status to clear the overlay
+      }
 
     } catch (err: any) {
       setAiStep('Network or API Failure');
