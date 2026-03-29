@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, X, Scissors, ArrowUpRight, MessageSquareText, Image as ImageIcon, ClipboardPaste, BrainCircuit, Trash2, Upload, FileText, PlusCircle, Type, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
-import { supabase, SESSION_CHANNEL_PREFIX } from '@/lib/supabase';
+import { useState, useEffect, useRef } from 'react';
+import { Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, X, BrainCircuit, Trash2, Upload, PlusCircle, ChevronDown, ChevronUp, LogOut, History, Plus, FileText, ImageIcon } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import Latex from 'react-latex-next';
 import ReactCrop, { type Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -21,7 +21,9 @@ interface QuestionData {
   extractedText: string;
   isQuestionTextMode?: boolean;
   isSolutionTextMode?: boolean;
+  status?: string;
   variations: { category: string; text: string; solution: string; }[];
+  created_at?: string;
 }
 
 export default function QuestionBreaker() {
@@ -36,6 +38,8 @@ export default function QuestionBreaker() {
   const [debugLog, setDebugLog] = useState<string>('');
   const [expandedVariations, setExpandedVariations] = useState<Record<number, boolean>>({});
   const [showSolutions, setShowSolutions] = useState<Record<number, boolean>>({});
+  const [history, setHistory] = useState<QuestionData[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   
   const [data, setData] = useState<QuestionData>({ 
     questionImageUrl: null, 
@@ -52,7 +56,6 @@ export default function QuestionBreaker() {
   const [isSolutionEnabled, setIsSolutionEnabled] = useState(false);
 
   // Media State
-  const [pastedFile, setPastedFile] = useState<File | null>(null);
   const [activeUploadType, setActiveUploadType] = useState<ImageType>('question');
   const [imgSrc, setImgSrc] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
@@ -73,11 +76,29 @@ export default function QuestionBreaker() {
         setPairingCode(savedCode || '');
         await syncLatestData(savedRoomId);
         setupRealtime(savedRoomId);
+        fetchHistory(savedRoomId);
       }
       setIsInitializing(false);
     };
     bootstrap();
   }, []);
+
+  const fetchHistory = async (rId: string) => {
+    const { data: qList } = await supabase.from('questions').select('*').eq('room_id', rId).order('created_at', { ascending: false });
+    if (qList) setHistory(qList.map(q => ({
+      id: q.id,
+      questionImageUrl: q.question_image_url,
+      questionText: q.question_text || '',
+      solutionImageUrl: q.solution_image_url,
+      solutionText: q.solution_text || '',
+      extractedText: q.extracted_text || '',
+      variations: q.variations || [],
+      isQuestionTextMode: q.is_question_text_mode,
+      isSolutionTextMode: q.is_solution_text_mode,
+      created_at: q.created_at,
+      status: q.status
+    })));
+  };
 
   const syncLatestData = async (rId: string) => {
     const { data: qData } = await supabase.from('questions').select('*').eq('room_id', rId).order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -87,21 +108,25 @@ export default function QuestionBreaker() {
   };
 
   const updateLocalState = (newData: any, isRemote = false) => {
-    setData({
+    // Only update local ID and content, but preserve the active mode if we are typing
+    setData(p => ({
+      ...p,
       id: newData.id,
       questionImageUrl: newData.question_image_url,
-      questionText: newData.question_text || '',
+      questionText: (isRemote && !document.activeElement?.classList.contains('question-input')) ? (newData.question_text || '') : p.questionText,
       solutionImageUrl: newData.solution_image_url,
-      solutionText: newData.solution_text || '',
+      solutionText: (isRemote && !document.activeElement?.classList.contains('solution-input')) ? (newData.solution_text || '') : p.solutionText,
       extractedText: newData.extracted_text || '',
       variations: newData.variations || []
-    });
+    }));
     
-    // ONLY switch UI modes if the change came from a remote device.
-    // This prevents "focus stealing" or immediate mode-switches on the local device.
+    // Remote mode syncing only if not local
     if (isRemote) {
-      setIsQuestionTextMode(!!newData.is_question_text_mode);
-      setIsSolutionTextMode(!!newData.is_solution_text_mode);
+       // We only sync modes if the status changes to processing (Gemini was triggered)
+       if (newData.status === 'processing' || newData.status === 'ready') {
+          setIsQuestionTextMode(!!newData.is_question_text_mode);
+          setIsSolutionTextMode(!!newData.is_solution_text_mode);
+       }
     }
     
     if (newData.solution_image_url || newData.solution_text) setIsSolutionEnabled(true);
@@ -116,8 +141,8 @@ export default function QuestionBreaker() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'questions', filter: `room_id=eq.${rId}` }, (payload: any) => {
         const newData = payload.new as any;
         if (!newData) return;
-        // This is a remote update from Supabase
         updateLocalState(newData, true);
+        fetchHistory(rId);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -158,25 +183,43 @@ export default function QuestionBreaker() {
       setPairingCode(cleanCode);
       await syncLatestData(room.id);
       setupRealtime(room.id);
+      fetchHistory(room.id);
     } else alert("Room not found.");
   };
 
   const resetSession = () => { localStorage.clear(); window.location.reload(); };
+
+  const startNewQuestion = () => {
+    setData({
+      questionImageUrl: null,
+      questionText: '',
+      solutionImageUrl: null,
+      solutionText: '',
+      extractedText: '',
+      variations: []
+    });
+    setStatus('waiting');
+    setIsSolutionEnabled(false);
+  };
+
+  const loadFromHistory = (item: QuestionData) => {
+    setData(item);
+    setIsQuestionTextMode(!!item.isQuestionTextMode);
+    setIsSolutionTextMode(!!item.isSolutionTextMode);
+    setIsSolutionEnabled(!!(item.solutionImageUrl || item.solutionText));
+    setStatus(item.status as SessionStatus || 'ready');
+    setShowHistory(false);
+  };
 
   // --- 3. DATABASE UPDATES ---
 
   const saveToDb = async (updates: Partial<QuestionData>, newStatus?: string) => {
     if (!roomId) return null;
     
-    // Check if we actually have a session
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      console.warn("No active session found. Re-authenticating...");
       const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-      if (authError) {
-        setDebugLog(`Auth Error: ${authError.message}`);
-        return null;
-      }
+      if (authError) { setDebugLog(`Auth Error: ${authError.message}`); return null; }
     }
 
     const payload: any = {
@@ -193,28 +236,14 @@ export default function QuestionBreaker() {
     try {
       if (data.id) { 
         const { error } = await supabase.from('questions').update(payload).eq('id', data.id);
-        if (error) {
-          console.error("Supabase Update Error:", error);
-          setDebugLog(`DB Update Error: ${error.message} (${error.code})`);
-          return null;
-        }
+        if (error) { setDebugLog(`DB Update Error: ${error.message}`); return null; }
         return data.id;
       } else { 
         const { data: created, error } = await supabase.from('questions').insert([payload]).select().single(); 
-        if (error) {
-          console.error("Supabase Insert Error:", error);
-          setDebugLog(`DB Insert Error: ${error.message} (${error.code})`);
-          return null;
-        }
-        if (created) {
-          setData(p => ({ ...p, id: created.id })); 
-          return created.id;
-        }
+        if (error) { setDebugLog(`DB Insert Error: ${error.message}`); return null; }
+        if (created) { setData(p => ({ ...p, id: created.id })); return created.id; }
       }
-    } catch (err: any) {
-      console.error("saveToDb Crash:", err);
-      setDebugLog(`Local state crash: ${err.message}`);
-    }
+    } catch (err: any) { setDebugLog(`Local state crash: ${err.message}`); }
     return null;
   };
 
@@ -224,15 +253,15 @@ export default function QuestionBreaker() {
     if (!roomId) return;
     setStatus('processing');
     setAiStep('AI Engine Initializing...');
-    setDebugLog(''); // Clear old errors
+    setDebugLog('');
 
-    // 1. Force a sync so phone sees the spinner
-    // We get the ID back from saveToDb to avoid stale state issues
-    const currentQuestionId = await saveToDb({}, 'processing');
+    const currentQuestionId = await saveToDb({
+       isQuestionTextMode,
+       isSolutionTextMode
+    }, 'processing');
 
     if (!currentQuestionId) {
-      // If saveToDb failed, it already updated the debug log
-      setAiStep('Initialization Failed - Check API Diagnostic');
+      setAiStep('Initialization Failed');
       setTimeout(() => setStatus('waiting'), 4000);
       return;
     }
@@ -252,40 +281,29 @@ export default function QuestionBreaker() {
         })
       });
 
-      // We only move to reasoning AFTER the server responds (which includes OCR and Reasoning)
-      // or we can just say "Running AI Logic..." for the duration of the fetch
       setAiStep('Generating Variations...');
       const result = await resp.json();
       
       if (result.error) {
-        setAiStep('AI Pipeline Error: ' + result.error);
+        setAiStep('AI Error: ' + result.error);
         if (result.raw) setDebugLog(result.raw);
         await saveToDb({}, 'waiting');
         return;
       }
 
       setAiStep('Finalizing Results...');
-      // 2. SAVE RESULTS TO DB (This instantly updates the phone/iPad)
       const { error: updateError } = await supabase.from('questions').update({
         extracted_text: result.extractedText,
         variations: result.variations,
         status: 'ready'
       }).eq('id', currentQuestionId);
 
-      if (updateError) {
-        setAiStep('Database Update Failed: ' + updateError.message);
-        console.error(updateError);
-      } else {
-        setAiStep('Success!');
-        setStatus('ready'); // Explicitly set local status to clear the overlay
-      }
+      if (updateError) setAiStep('DB Save Failed');
+      else { setAiStep('Success!'); setStatus('ready'); fetchHistory(roomId); }
 
-    } catch (err: any) {
-      setAiStep('Network or API Failure');
-      await saveToDb({}, 'waiting');
-      setTimeout(() => setStatus('waiting'), 3000);
-    }
+    } catch (err: any) { setAiStep('Network Failure'); await saveToDb({}, 'waiting'); setTimeout(() => setStatus('waiting'), 3000); }
   };
+
   // --- 5. MEDIA HELPERS ---
 
   const uploadToSupabase = async (file: File, type: ImageType) => {
@@ -314,22 +332,14 @@ export default function QuestionBreaker() {
   const handleConfirmCrop = async () => {
     if (!imgRef.current || !completedCrop) return;
     setStatus('uploading');
-    try {
-      const canvas = document.createElement('canvas');
-      const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-      const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-      canvas.width = completedCrop.width * scaleX; canvas.height = completedCrop.height * scaleY;
-      const ctx = canvas.getContext('2d')!;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(imgRef.current, completedCrop.x * scaleX, completedCrop.y * scaleY, completedCrop.width * scaleX, completedCrop.height * scaleY, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(async (blob) => { if (blob) await uploadToSupabase(new File([blob], `crop.jpg`, { type: 'image/jpeg' }), activeUploadType); }, 'image/jpeg', 1.0);
-    } catch (e) { setStatus('waiting'); }
-  };
-
-  const handleSkipCrop = async () => {
-    if (!rawFile) return;
-    setStatus('uploading');
-    await uploadToSupabase(rawFile, activeUploadType);
+    const canvas = document.createElement('canvas');
+    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+    canvas.width = completedCrop.width * scaleX; canvas.height = completedCrop.height * scaleY;
+    const ctx = canvas.getContext('2d')!;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(imgRef.current, completedCrop.x * scaleX, completedCrop.y * scaleY, completedCrop.width * scaleX, completedCrop.height * scaleY, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(async (blob) => { if (blob) await uploadToSupabase(new File([blob], `crop.jpg`, { type: 'image/jpeg' }), activeUploadType); }, 'image/jpeg', 1.0);
   };
 
   if (isInitializing) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600" /></div>;
@@ -341,7 +351,33 @@ export default function QuestionBreaker() {
         <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col">
           <div className="p-4 flex justify-between items-center text-white bg-slate-950"><button onClick={() => setStatus('waiting')}><X /></button><span className="font-bold text-xs uppercase">Crop {activeUploadType}</span><button onClick={handleConfirmCrop} className="bg-indigo-600 px-6 py-2 rounded-full font-black text-xs uppercase shadow-lg">Confirm</button></div>
           <div className="flex-1 overflow-auto bg-black flex items-center justify-center p-4"><ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)} className="max-h-full"><img ref={imgRef} src={imgSrc} alt="Crop" className="max-w-full max-h-[70vh] object-contain" /></ReactCrop></div>
-          <div className="p-4 bg-slate-950 text-center"><button onClick={handleSkipCrop} className="w-full max-w-xs p-3 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-white/10">Skip Crop & Upload</button></div>
+          <div className="p-4 bg-slate-950 text-center"><button onClick={() => { if (rawFile) uploadToSupabase(rawFile, activeUploadType); }} className="w-full max-w-xs p-3 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-white/10">Skip Crop & Upload</button></div>
+        </div>
+      )}
+
+      {/* SESSION HISTORY SIDEBAR */}
+      {showHistory && (
+        <div className="fixed inset-0 z-[80] bg-slate-900/60 backdrop-blur-sm flex justify-end">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h2 className="font-black uppercase tracking-widest text-sm flex items-center gap-2"><History size={18} className="text-indigo-600"/> Session History</h2>
+              <button onClick={() => setShowHistory(false)}><X/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <button onClick={startNewQuestion} className="w-full p-4 border-2 border-dashed border-indigo-100 rounded-2xl text-indigo-600 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all mb-4">
+                <Plus size={20}/> New Question
+              </button>
+              {history.map((item, idx) => (
+                <button key={idx} onClick={() => loadFromHistory(item)} className={`w-full text-left p-4 rounded-2xl border-2 transition-all group ${data.id === item.id ? 'border-indigo-600 bg-indigo-50' : 'border-slate-50 bg-slate-50/50 hover:border-slate-100'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-black uppercase text-slate-400">{new Date(item.created_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    {item.status === 'ready' && <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>}
+                  </div>
+                  <p className="text-xs font-bold text-slate-600 line-clamp-2">{item.questionText || (item.questionImageUrl ? '[Question Image]' : 'Empty Question')}</p>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -362,38 +398,90 @@ export default function QuestionBreaker() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col relative">
-          <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0 shadow-sm"><div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl underline decoration-indigo-100 decoration-4">QB</div><div className="flex items-center gap-4"><div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">CODE: {pairingCode}</div><button onClick={resetSession} className="text-xs font-semibold text-slate-400 hover:text-red-500 flex items-center gap-1"><LogOut size={14}/> Reset</button></div></header>
+          <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0 shadow-sm">
+            <div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl">QB</div>
+            <div className="flex items-center gap-4">
+              <button onClick={() => setShowHistory(true)} className="flex items-center gap-2 px-4 py-1.5 bg-slate-100 rounded-full text-xs font-black text-slate-600 uppercase hover:bg-slate-200 transition-all">
+                <History size={16}/> History
+              </button>
+              <div className="px-4 py-1.5 bg-indigo-50 rounded-full text-sm font-mono font-bold text-indigo-600">CODE: {pairingCode}</div>
+              <button onClick={resetSession} className="text-xs font-semibold text-slate-400 hover:text-red-500"><LogOut size={14}/></button>
+            </div>
+          </header>
+          
           <main className="flex-1 flex flex-col md:flex-row overflow-hidden text-left text-balance">
             <div className="w-full md:w-1/2 border-r bg-slate-50/50 flex flex-col relative overflow-y-auto pb-40">
               <div className="p-8 space-y-10">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> The Question</h4><div className="flex items-center gap-2"><button onClick={() => { const next = !isQuestionTextMode; setIsQuestionTextMode(next); saveToDb({ isQuestionTextMode: next }); }} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">{isQuestionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>{(data.questionImageUrl || data.questionText) && <button onClick={() => { setData(p => ({ ...p, questionImageUrl: null, questionText: '' })); saveToDb({ questionImageUrl: null, questionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
-                  {isQuestionTextMode ? ( <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, questionText: v })); }} onBlur={(e) => saveToDb({ questionText: e.target.value })} className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white mx-auto" /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10 text-balance">Click or Paste Question Image</span></button> ) )}
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">The Question</h4>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setIsQuestionTextMode(false)} className={`p-2 rounded-lg transition-all ${!isQuestionTextMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><ImageIcon size={16}/></button>
+                      <button onClick={() => setIsQuestionTextMode(true)} className={`p-2 rounded-lg transition-all ${isQuestionTextMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><FileText size={16}/></button>
+                    </div>
+                  </div>
+                  {isQuestionTextMode ? ( 
+                    <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))} onBlur={(e) => saveToDb({ questionText: e.target.value })} className="question-input w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> 
+                  ) : ( 
+                    data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-xl border border-white mx-auto cursor-pointer" onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Upload Question Image</span></button> ) 
+                  )}
                 </div>
+
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> Solution Reference</h4><div className="flex items-center gap-2">{isSolutionEnabled && <button onClick={() => { const next = !isSolutionTextMode; setIsSolutionTextMode(next); saveToDb({ isSolutionTextMode: next }); }} className="text-[10px] font-black uppercase text-indigo-400 hover:underline">{isSolutionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>}{isSolutionEnabled && <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
-                  {!isSolutionEnabled ? ( <button onClick={() => setIsSolutionEnabled(true)} className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 flex items-center justify-center gap-3 hover:bg-white hover:border-indigo-100 transition-all group"><PlusCircle size={20} className="group-hover:rotate-90 transition-transform" /><span className="text-[10px] font-black uppercase tracking-widest text-balance">Add Solution Context (Optional)</span></button> ) : ( isSolutionTextMode ? ( <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, solutionText: v })); }} onBlur={(e) => saveToDb({ solutionText: e.target.value })} className="w-full min-h-[150px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto" /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10 text-balance">Click or Paste Solution Image</span></button> ) ) )}
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2">Solution Reference</h4>
+                    <div className="flex items-center gap-2">
+                       {isSolutionEnabled ? (
+                         <div className="flex items-center gap-3">
+                            <button onClick={() => setIsSolutionTextMode(false)} className={`p-2 rounded-lg transition-all ${!isSolutionTextMode ? 'bg-indigo-400 text-white' : 'text-indigo-200'}`}><ImageIcon size={16}/></button>
+                            <button onClick={() => setIsSolutionTextMode(true)} className={`p-2 rounded-lg transition-all ${isSolutionTextMode ? 'bg-indigo-400 text-white' : 'text-indigo-200'}`}><FileText size={16}/></button>
+                            <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-slate-300 hover:text-red-500 ml-2"><Trash2 size={16}/></button>
+                         </div>
+                       ) : (
+                        <button onClick={() => setIsSolutionEnabled(true)} className="text-[10px] font-black uppercase text-indigo-400 flex items-center gap-1"><PlusCircle size={14}/> Add Context</button>
+                       )}
+                    </div>
+                  </div>
+                  {isSolutionEnabled && (
+                    isSolutionTextMode ? ( 
+                      <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => setData(p => ({ ...p, solutionText: e.target.value }))} onBlur={(e) => saveToDb({ solutionText: e.target.value })} className="solution-input w-full min-h-[120px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> 
+                    ) : ( 
+                      data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto cursor-pointer" onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Upload Solution Image</span></button> ) 
+                    )
+                  )}
                 </div>
-                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap text-left"><div className="font-bold uppercase mb-1 text-red-800">API Diagnostic:</div>{debugLog}</div>}
+                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap"><div className="font-bold uppercase mb-1">API Diagnostic:</div>{debugLog}</div>}
               </div>
+
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center">
-                {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && ( <button onClick={handleProcessWithAI} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all shadow-indigo-100"><BrainCircuit className="text-indigo-400 group-hover:rotate-12 transition-transform" />Submit to Gemini 3.1</button> )}
-                {!(data.questionImageUrl || data.questionText) && <div className="flex items-center gap-3 text-slate-400 animate-pulse font-bold text-[10px] uppercase tracking-[0.2em] text-center"><Smartphone size={16} /> Awaiting Input from<br/>any connected device</div>}
+                {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && ( 
+                   <button onClick={handleProcessWithAI} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all shadow-indigo-100">
+                     <BrainCircuit className="text-indigo-400 group-hover:rotate-12 transition-transform" />Submit to Gemini 3.1
+                   </button> 
+                )}
+                {status === 'ready' && (
+                  <button onClick={startNewQuestion} className="bg-white border-2 border-indigo-100 text-indigo-600 px-10 py-4 rounded-full font-black flex items-center gap-2 hover:bg-indigo-50 transition-all shadow-lg">
+                    <Plus size={20}/> New Question
+                  </button>
+                )}
               </div>
               {status === 'processing' && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4 text-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold text-indigo-950 uppercase tracking-widest text-xs">AI Logic Engine Active</p><p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-white px-3 py-1 rounded-full shadow-sm">{aiStep}</p></div>}
             </div>
             
             <div className="w-full md:w-1/2 bg-white flex flex-col overflow-y-auto">
-              <div className="p-4 border-b sticky top-0 bg-white/90 backdrop-blur z-10 flex justify-between items-center px-8"><h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Variations</h3><div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter shadow-sm">Gemini 3.1 Pro</div></div>
+              <div className="p-4 border-b sticky top-0 bg-white/90 backdrop-blur z-10 flex justify-between items-center px-8">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Variations</h3>
+                <div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter">Gemini 3.1 Pro</div>
+              </div>
               <div className="p-8 space-y-4 text-left">
                 {status === 'ready' ? (
                   data.variations.map((v, i) => (
                     <div key={i} className="border-2 border-slate-50 rounded-3xl overflow-hidden transition-all duration-300 hover:border-indigo-100">
-                      <button onClick={() => setExpandedVariations(prev => ({ ...prev, [i]: !prev[i] }))} className={`w-full p-6 flex justify-between items-center transition-colors ${expandedVariations[i] ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}><div className="flex items-center gap-3"><span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${expandedVariations[i] ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'}`}>{v.category}</span><span className="font-bold text-sm tracking-tight">Expand Variation</span></div>{expandedVariations[i] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>
-                      {expandedVariations[i] && ( <div className="p-8 space-y-6 animate-in slide-in-from-top-2 duration-300 text-left"><div className="text-slate-700 leading-relaxed text-lg prose prose-indigo whitespace-pre-wrap text-left"><Latex>{v.text}</Latex></div><button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all text-left shadow-sm">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />} {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>{showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95 text-left"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest text-center">Pedagogical Solution</div><div className="prose prose-slate max-w-none text-left whitespace-pre-wrap"><Latex>{v.solution}</Latex></div></div>}</div> )}
+                      <button onClick={() => setExpandedVariations(prev => ({ ...prev, [i]: !prev[i] }))} className={`w-full p-6 flex justify-between items-center transition-colors ${expandedVariations[i] ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}><div className="flex items-center gap-3"><span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${expandedVariations[i] ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'}`}>{v.category}</span><span className="font-bold text-sm tracking-tight">Expand Variation</span></div>{expandedVariations[i] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>
+                      {expandedVariations[i] && ( <div className="p-8 space-y-6 animate-in slide-in-from-top-2 duration-300"><div className="text-slate-700 leading-relaxed text-lg prose prose-indigo whitespace-pre-wrap"><Latex>{v.text}</Latex></div><button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all shadow-sm">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />} {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>{showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest text-center">Pedagogical Solution</div><div className="prose prose-slate max-w-none whitespace-pre-wrap"><Latex>{v.solution}</Latex></div></div>}</div> )}
                     </div>
                   ))
-                ) : ( <div className="space-y-6 text-center py-20">{[1,2,3].map(i => <div key={i} className="space-y-3 animate-pulse opacity-20"><div className="h-4 w-24 bg-slate-100 rounded mx-auto"></div><div className="h-20 w-full bg-slate-50 rounded-2xl"></div></div>)}<p className="text-[10px] font-black text-slate-200 uppercase tracking-widest mt-4 text-center">Awaiting AI Logic</p></div> )}
+                ) : ( <div className="space-y-6 text-center py-20">{[1,2,3].map(i => <div key={i} className="space-y-3 animate-pulse opacity-20"><div className="h-4 w-24 bg-slate-100 rounded mx-auto"></div><div className="h-20 w-full bg-slate-50 rounded-2xl"></div></div>)}<p className="text-[10px] font-black text-slate-200 uppercase tracking-widest mt-4">Awaiting AI Logic</p></div> )}
               </div>
             </div>
           </main>
@@ -402,15 +490,4 @@ export default function QuestionBreaker() {
       )}
     </div>
   );
-}
-
-async function getCroppedImg(image: HTMLImageElement, pixelCrop: any): Promise<Blob> {
-  const canvas = document.createElement('canvas');
-  const scaleX = image.naturalWidth / image.width;
-  const scaleY = image.naturalHeight / image.height;
-  canvas.width = pixelCrop.width * scaleX; canvas.height = pixelCrop.height * scaleY;
-  const ctx = canvas.getContext('2d')!;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(image, pixelCrop.x * scaleX, pixelCrop.y * scaleY, pixelCrop.width * scaleX, pixelCrop.height * scaleY, 0, 0, canvas.width, canvas.height);
-  return new Promise((res) => canvas.toBlob((b) => res(b!), 'image/jpeg', 1.0));
 }
