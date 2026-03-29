@@ -70,8 +70,7 @@ export async function POST(req: NextRequest) {
 
     // --- STEP 2: Reasoning ---
     console.log(`AI Pipeline: Starting Reasoning with ${REASONING_MODEL}...`);
-    const reasoningPrompt = `...`; // (rest of prompt remains same)
-
+    const reasoningPrompt = `
       You are a Senior Pedagogical Architect.
       
       INPUT QUESTION: "${finalQuestionText}"
