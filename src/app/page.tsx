@@ -26,7 +26,6 @@ export default function QuestionBreaker() {
   // Persistence States
   const [roomId, setRoomId] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'desktop' | 'mobile' | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
   // App States
@@ -45,12 +44,12 @@ export default function QuestionBreaker() {
     variations: [] 
   });
 
-  // Laptop Workflow State
+  // Workflow States
   const [isQuestionTextMode, setIsQuestionTextMode] = useState(false);
   const [isSolutionTextMode, setIsSolutionTextMode] = useState(true);
   const [isSolutionEnabled, setIsSolutionEnabled] = useState(false);
 
-  // Media / Cropping State
+  // Media State
   const [pastedFile, setPastedFile] = useState<File | null>(null);
   const [activeUploadType, setActiveUploadType] = useState<ImageType>('question');
   const [imgSrc, setImgSrc] = useState('');
@@ -60,21 +59,21 @@ export default function QuestionBreaker() {
   const [rawFile, setRawFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- 1. PERSISTENCE & SYNC ---
+  // --- 1. BOOTSTRAP & PERSISTENCE ---
 
   useEffect(() => {
     const bootstrap = async () => {
+      // Ensure Auth first
       await supabase.auth.signInAnonymously();
+      
       const savedRoomId = localStorage.getItem('qb_active_room_id');
       const savedCode = localStorage.getItem('qb_pairing_code');
-      const savedView = localStorage.getItem('qb_view_mode') as any;
 
-      if (savedRoomId && savedView) {
+      if (savedRoomId) {
         setRoomId(savedRoomId);
         setPairingCode(savedCode || '');
-        setViewMode(savedView);
         await syncLatestData(savedRoomId);
-        setupRealtime(savedRoomId, savedView === 'desktop');
+        setupRealtime(savedRoomId);
       }
       setIsInitializing(false);
     };
@@ -82,7 +81,7 @@ export default function QuestionBreaker() {
   }, []);
 
   const syncLatestData = async (rId: string) => {
-    const { data: qData } = await supabase.from('questions').select('*').eq('room_id', rId).order('created_at', { ascending: false }).limit(1).single();
+    const { data: qData } = await supabase.from('questions').select('*').eq('room_id', rId).order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (qData) {
       setData({
         id: qData.id,
@@ -98,15 +97,11 @@ export default function QuestionBreaker() {
     }
   };
 
-  const setupRealtime = (rId: string, isHost: boolean) => {
+  const setupRealtime = (rId: string) => {
     const channel = supabase.channel(`room_${rId}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'questions', 
-        filter: `room_id=eq.${rId}` 
-      }, (payload: any) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions', filter: `room_id=eq.${rId}` }, (payload: any) => {
         const newData = payload.new as any;
+        if (!newData) return;
         setData({
           id: newData.id,
           questionImageUrl: newData.question_image_url,
@@ -127,36 +122,54 @@ export default function QuestionBreaker() {
   // --- 2. ROOM ACTIONS ---
 
   const createRoom = async () => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: room } = await supabase.from('rooms').insert([{ owner_id: user?.id, pairing_code: code }]).select().single();
-    if (room) {
-      localStorage.setItem('qb_active_room_id', room.id);
-      localStorage.setItem('qb_pairing_code', code);
-      localStorage.setItem('qb_view_mode', 'desktop');
-      setRoomId(room.id); setPairingCode(code); setViewMode('desktop'); setStatus('waiting');
-      setupRealtime(room.id, true);
+    try {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        await supabase.auth.signInAnonymously();
+      }
+
+      const { data: room, error } = await supabase
+        .from('rooms')
+        .insert([{ owner_id: user?.id, pairing_code: code }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (room) {
+        localStorage.setItem('qb_active_room_id', room.id);
+        localStorage.setItem('qb_pairing_code', code);
+        setRoomId(room.id);
+        setPairingCode(code);
+        setupRealtime(room.id);
+        setStatus('waiting');
+      }
+    } catch (err: any) {
+      alert("Error creating session: " + err.message);
     }
   };
 
   const joinRoom = async (code: string) => {
     const cleanCode = code.toUpperCase().trim();
-    const { data: room } = await supabase.from('rooms').select('*').eq('pairing_code', cleanCode).eq('is_active', true).single();
+    const { data: room, error } = await supabase.from('rooms').select('*').eq('pairing_code', cleanCode).eq('is_active', true).maybeSingle();
+    
     if (room) {
       localStorage.setItem('qb_active_room_id', room.id);
       localStorage.setItem('qb_pairing_code', cleanCode);
-      localStorage.setItem('qb_view_mode', 'mobile');
-      setRoomId(room.id); setPairingCode(cleanCode); setViewMode('mobile');
+      setRoomId(room.id);
+      setPairingCode(cleanCode);
       await syncLatestData(room.id);
-      setupRealtime(room.id, false);
+      setupRealtime(room.id);
     } else {
-      alert("Room not found.");
+      alert("Room not found. Check the code on your host device.");
     }
   };
 
   const resetSession = () => { localStorage.clear(); window.location.reload(); };
 
-  // --- 3. DATA SAVING ---
+  // --- 3. DATABASE UPDATES ---
 
   const saveToDb = async (updates: Partial<QuestionData>, newStatus?: string) => {
     if (!roomId) return;
@@ -172,7 +185,7 @@ export default function QuestionBreaker() {
     else { const { data: created } = await supabase.from('questions').insert([payload]).select().single(); if (created) setData(p => ({ ...p, id: created.id })); }
   };
 
-  // --- 4. CORE HANDLERS ---
+  // --- 4. HANDLERS ---
 
   const handleProcessWithAI = async () => {
     const hasQuestion = isQuestionTextMode ? data.questionText : data.questionImageUrl;
@@ -180,8 +193,6 @@ export default function QuestionBreaker() {
 
     setStatus('processing');
     setAiStep('Connecting to Gemini 3.1...');
-    
-    // 1. Mark as processing in DB so other devices see the spinner
     await saveToDb({}, 'processing');
 
     try {
@@ -198,7 +209,6 @@ export default function QuestionBreaker() {
       const result = await resp.json();
       if (result.error) { setAiStep('Error: ' + result.error); if (result.raw) setDebugLog(result.raw); return; }
 
-      // 2. Save variations to DB (Syncs all devices)
       await supabase.from('questions').update({
         extracted_text: result.extractedText,
         variations: result.variations,
@@ -221,10 +231,6 @@ export default function QuestionBreaker() {
       const updates = type === 'question' ? { questionImageUrl: publicUrl } : { solutionImageUrl: publicUrl };
       await saveToDb(updates, 'waiting');
       
-      if (viewMode === 'desktop') {
-        if (type === 'question') setIsQuestionTextMode(false);
-        if (type === 'solution') setIsSolutionTextMode(false);
-      }
       setStatus('waiting'); setImgSrc('');
     } catch (err: any) { alert('Upload failed: ' + err.message); setStatus('waiting'); }
   };
@@ -273,12 +279,15 @@ export default function QuestionBreaker() {
         </div>
       )}
 
-      {/* 1. INITIAL VIEW */}
-      {viewMode === null && (
+      {/* INITIAL SETUP VIEW */}
+      {!roomId ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
             <h1 className="text-4xl font-black text-indigo-600 italic">QB.</h1>
-            <button onClick={createRoom} className="group flex items-center justify-between w-full p-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all shadow-lg"><div className="flex items-center gap-4 text-left"><Columns2 size={24} /><div className="font-bold text-lg">Start New Session<div className="text-indigo-100 text-sm font-medium">For Laptop/Desktop</div></div></div><ChevronRight className="opacity-50" /></button>
+            <button onClick={createRoom} className="group flex items-center justify-between w-full p-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all shadow-lg shadow-indigo-200">
+              <div className="flex items-center gap-4 text-left"><Columns2 size={24} /><div className="font-bold text-lg">Start New Session</div></div>
+              <ChevronRight className="opacity-50" />
+            </button>
             <div className="relative py-4 text-xs text-slate-400 uppercase tracking-widest flex items-center justify-center gap-4"><div className="h-px flex-1 bg-slate-100"></div>or join existing<div className="h-px flex-1 bg-slate-100"></div></div>
             <div className="space-y-3">
               <input type="text" placeholder="Enter 6-digit Code" className="w-full p-4 rounded-xl border-2 border-slate-100 text-center font-mono text-xl uppercase tracking-widest focus:border-indigo-500 outline-none" onChange={(e) => setPairingCode(e.target.value.toUpperCase())} value={pairingCode} />
@@ -286,55 +295,46 @@ export default function QuestionBreaker() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* 2. MOBILE VIEW */}
-      {viewMode === 'mobile' && (
-        <div className="flex-1 flex flex-col bg-white overflow-hidden pb-10">
-          <header className="p-4 border-b flex justify-between items-center bg-slate-50/50"><strong>QB Mobile</strong><button onClick={resetSession} className="p-2 text-slate-400"><LogOut size={18}/></button></header>
-          <main className="flex-1 flex flex-col p-6 space-y-6 text-center relative overflow-y-auto">
-            <div className="px-3 py-1 bg-indigo-50 inline-block mx-auto rounded-full text-xs font-mono font-bold text-indigo-600 uppercase tracking-widest">Connected: {pairingCode}</div>
-            {status === 'processing' || status === 'uploading' ? (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-4"><Loader2 className="w-12 h-12 text-indigo-600 animate-spin" /><p className="font-bold text-lg text-indigo-900">{status === 'uploading' ? 'Syncing...' : 'AI Thinking...'}</p></div>
-            ) : status === 'ready' ? (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in"><div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 size={32} /></div><h2 className="text-2xl font-bold text-indigo-900 text-center">Variations Ready!</h2><button onClick={() => { setStatus('waiting'); }} className="p-5 bg-indigo-600 text-white rounded-2xl font-black w-full shadow-lg shadow-indigo-100">Upload Another</button></div>
-            ) : (
-              <div className="flex-1 flex flex-col justify-center gap-6"><div className="space-y-4 p-6 bg-slate-50 rounded-3xl border border-slate-100 text-sm font-black text-indigo-600 uppercase tracking-widest">Question<label className="mt-2 flex items-center justify-center w-full gap-3 p-5 bg-indigo-600 text-white rounded-2xl font-black text-lg active:scale-95 cursor-pointer shadow-lg"><Camera size={20} /> Snap Question<input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onSelectFile(e, 'question')} /></label></div><div className="h-px bg-slate-100 mx-10"></div><div className="space-y-4 p-6 bg-white border border-slate-100 rounded-3xl shadow-sm text-sm font-black text-slate-400 uppercase tracking-widest">Solution (Optional)<label className="mt-2 flex items-center justify-center w-full gap-3 p-5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black text-lg active:scale-95 cursor-pointer"><ImageIcon size={20} /> Add Answer Key<input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onSelectFile(e, 'solution')} /></label></div></div>
-            )}
-          </main>
-        </div>
-      )}
-
-      {/* 3. DESKTOP VIEW */}
-      {viewMode === 'desktop' && (
+      ) : (
+        /* SYNCED DASHBOARD VIEW (Visible on ALL devices) */
         <div className="flex-1 flex flex-col relative">
-          <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0"><div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl underline decoration-indigo-100 decoration-4">QB</div><div className="flex items-center gap-4"><div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">CODE: {pairingCode}</div><button onClick={resetSession} className="text-xs font-semibold text-slate-400 hover:text-red-500 flex items-center gap-1"><LogOut size={14}/> Reset</button></div></header>
-          <main className="flex-1 flex overflow-hidden">
-            <div className="w-1/2 border-r bg-slate-50/50 flex flex-col relative">
-              <div className="flex-1 overflow-y-auto p-8 space-y-10 pb-40">
+          <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0 shadow-sm">
+            <div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl underline decoration-indigo-100 decoration-4">QB</div>
+            <div className="flex items-center gap-4">
+              <div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">CODE: {pairingCode}</div>
+              <button onClick={resetSession} className="text-xs font-semibold text-slate-400 hover:text-red-500 flex items-center gap-1"><LogOut size={14}/> Reset</button>
+            </div>
+          </header>
+          
+          <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+            {/* INPUT SIDE (Left on Desktop, Top on Mobile) */}
+            <div className="w-full md:w-1/2 border-r bg-slate-50/50 flex flex-col relative overflow-y-auto pb-40">
+              <div className="p-8 space-y-10">
                 {/* QUESTION ZONE */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> The Question</h4><div className="flex items-center gap-2"><button onClick={() => setIsQuestionTextMode(!isQuestionTextMode)} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">{isQuestionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>{(data.questionImageUrl || data.questionText) && <button onClick={() => { setData(p => ({ ...p, questionImageUrl: null, questionText: '' })); saveToDb({ questionImageUrl: null, questionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
-                  {isQuestionTextMode ? ( <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, questionText: v })); saveToDb({ questionText: v }); }} className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white mx-auto" /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Question Image</span></button> ) )}
+                  {isQuestionTextMode ? ( <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, questionText: v })); saveToDb({ questionText: v }); }} className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white mx-auto" /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center">Click or Paste Question Image</span></button> ) )}
                 </div>
                 {/* SOLUTION ZONE */}
-                <div className="space-y-3">
+                <div className="space-y-3 text-left">
                   <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> Solution Reference</h4><div className="flex items-center gap-2">{isSolutionEnabled && <button onClick={() => setIsSolutionTextMode(!isSolutionTextMode)} className="text-[10px] font-black uppercase text-indigo-400 hover:underline">{isSolutionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>}{isSolutionEnabled && <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
-                  {!isSolutionEnabled ? ( <button onClick={() => setIsSolutionEnabled(true)} className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 flex items-center justify-center gap-3 hover:bg-white hover:border-indigo-100 transition-all group"><PlusCircle size={20} className="group-hover:rotate-90 transition-transform" /><span className="text-[10px] font-black uppercase tracking-widest">Add Solution Context (Optional)</span></button> ) : ( isSolutionTextMode ? ( <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, solutionText: v })); saveToDb({ solutionText: v }); }} className="w-full min-h-[150px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto" /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Solution Image</span></button> ) ) )}
+                  {!isSolutionEnabled ? ( <button onClick={() => setIsSolutionEnabled(true)} className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 flex items-center justify-center gap-3 hover:bg-white hover:border-indigo-100 transition-all group"><PlusCircle size={20} className="group-hover:rotate-90 transition-transform" /><span className="text-[10px] font-black uppercase tracking-widest">Add Solution Context (Optional)</span></button> ) : ( isSolutionTextMode ? ( <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, solutionText: v })); saveToDb({ solutionText: v }); }} className="w-full min-h-[150px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto" /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Solution Image</span></button> ) ) )}
                 </div>
-                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap"><div className="font-bold uppercase mb-1">Diagnostic Info:</div>{debugLog}</div>}
+                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap text-left"><div className="font-bold uppercase mb-1">Diagnostic Info:</div>{debugLog}</div>}
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center">
                 {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && ( <button onClick={handleProcessWithAI} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all"><BrainCircuit className="text-indigo-400 group-hover:rotate-12 transition-transform" />Submit to Gemini 3.1</button> )}
-                {!(data.questionImageUrl || data.questionText) && <div className="flex items-center gap-3 text-slate-400 animate-pulse font-bold text-[10px] uppercase tracking-[0.2em]"><Smartphone size={16} /> Awaiting Input</div>}
               </div>
               {status === 'processing' && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4 text-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold text-indigo-950 uppercase tracking-widest text-xs">AI Logic Engine Active</p><p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-white px-3 py-1 rounded-full shadow-sm">{aiStep}</p></div>}
             </div>
-            <div className="w-1/2 bg-white flex flex-col overflow-y-auto"><div className="p-4 border-b sticky top-0 bg-white/90 backdrop-blur z-10 flex justify-between items-center px-8"><h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Variations</h3><div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter">Gemini 3.1 Pro</div></div>
+            
+            {/* VARIATIONS SIDE (Right on Desktop, Bottom on Mobile) */}
+            <div className="w-full md:w-1/2 bg-white flex flex-col overflow-y-auto">
+              <div className="p-4 border-b sticky top-0 bg-white/90 backdrop-blur z-10 flex justify-between items-center px-8"><h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Variations</h3><div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter">Gemini 3.1 Pro</div></div>
               <div className="p-8 space-y-4">
                 {status === 'ready' ? (
                   data.variations.map((v, i) => (
-                    <div key={i} className="border-2 border-slate-50 rounded-3xl overflow-hidden transition-all duration-300 hover:border-indigo-100">
+                    <div key={i} className="border-2 border-slate-50 rounded-3xl overflow-hidden transition-all duration-300 hover:border-indigo-100 text-left text-balance">
                       <button onClick={() => setExpandedVariations(prev => ({ ...prev, [i]: !prev[i] }))} className={`w-full p-6 flex justify-between items-center transition-colors ${expandedVariations[i] ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}><div className="flex items-center gap-3"><span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${expandedVariations[i] ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'}`}>{v.category}</span><span className="font-bold text-sm tracking-tight">Expand Variation</span></div>{expandedVariations[i] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>
                       {expandedVariations[i] && ( <div className="p-8 space-y-6 animate-in slide-in-from-top-2 duration-300"><div className="text-slate-700 leading-relaxed text-lg prose prose-indigo whitespace-pre-wrap text-left"><Latex>{v.text}</Latex></div><button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />} {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>{showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest text-center">Pedagogical Solution</div><div className="prose prose-slate max-w-none text-left whitespace-pre-wrap"><Latex>{v.solution}</Latex></div></div>}</div> )}
                     </div>
