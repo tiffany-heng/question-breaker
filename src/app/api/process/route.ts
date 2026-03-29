@@ -2,7 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const FLASH_MODEL = 'gemini-2.0-flash';
+const FALLBACK_FLASH = 'gemini-1.5-flash';
 const PRO_MODEL = 'gemini-3.1-flash-lite-preview';
+
+async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
+  let lastStatus = 0;
+  for (let i = 0; i < maxRetries; i++) {
+    const res = await fetch(url, options);
+    lastStatus = res.status;
+    if (res.status === 429) {
+      const wait = Math.pow(2, i) * 3000; // 3s, 6s, 12s...
+      console.log(`Rate limited (429). Retry ${i+1}/${maxRetries} in ${wait}ms...`);
+      await new Promise(r => setTimeout(r, wait));
+      continue;
+    }
+    return res;
+  }
+  // If we still fail, return the last response
+  return fetch(url, options);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,50 +43,48 @@ export async function POST(req: NextRequest) {
           sBase64 = Buffer.from(sBuffer).toString('base64');
         }
       } catch (e) {
-        console.warn("Optional solution image failed to load, skipping...");
+        console.warn("Optional solution image failed to load");
       }
     }
 
-    // --- STEP 1: Full Extraction (Flash 2.0) ---
-    // Improved Structure: Images first, then instructions
+    // --- STEP 1: Full Extraction ---
     const flashParts: any[] = [
       { inline_data: { mime_type: 'image/jpeg', data: qBase64 } }
     ];
+    if (sBase64) flashParts.push({ inline_data: { mime_type: 'image/jpeg', data: sBase64 } });
     
-    if (sBase64) {
-      flashParts.push({ inline_data: { mime_type: 'image/jpeg', data: sBase64 } });
-      flashParts.push({ text: "The first image is a question. The second image is a solution reference. EXTRACT ALL TEXT FROM BOTH. DO NOT SOLVE. Preserve LaTeX." });
-    } else {
-      flashParts.push({ text: "EXTRACT ALL TEXT FROM THE IMAGE ABOVE. DO NOT SOLVE. Preserve LaTeX." });
-    }
+    flashParts.push({ text: "EXTRACT ALL TEXT FROM THESE IMAGES. DO NOT SOLVE. Preserve LaTeX." });
 
-    const flashResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${FLASH_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+    let flashResp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${FLASH_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ 
-        contents: [{ role: "user", parts: flashParts }] 
-      })
+      body: JSON.stringify({ contents: [{ role: "user", parts: flashParts }] })
     });
+
+    // Fallback if 2.0 is hitting specific quota limits
+    if (!flashResp.ok && FLASH_MODEL !== FALLBACK_FLASH) {
+      console.log("Switching to fallback model...");
+      flashResp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${FALLBACK_FLASH}:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ contents: [{ role: "user", parts: flashParts }] })
+      });
+    }
     
     const flashData = await flashResp.json();
-    if (flashData.error) {
-      console.error("Gemini Flash Error:", flashData.error);
-      return NextResponse.json({ error: "Flash Error", raw: flashData.error.message || JSON.stringify(flashData.error) });
-    }
+    if (flashData.error) return NextResponse.json({ error: "Flash Quota Exceeded", raw: flashData.error.message });
     
     const extractedText = flashData.candidates?.[0]?.content?.parts?.[0]?.text || '[No text found]';
 
-    // --- STEP 2: Variations (Gemini 3.1 Flash Lite) ---
+    // --- STEP 2: Variations ---
     const reasoningPrompt = `
       You are a Pedagogical Engineer. 
       QUESTION TEXT: "${extractedText}"
       PROVIDED SOLUTION HINT: "${userSolutionText || 'None'}"
-      
-      TASK: Generate 4 distinct variations (Conceptual flip, Constraint change, Edge case, Hybrid) with step-by-step LaTeX solutions.
-      Return a JSON array of objects with keys: "category", "text", "solution".
+      TASK: Generate 4 variations in JSON array: "category", "text", "solution".
     `;
 
-    const proResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${PRO_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+    const proResp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${PRO_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ 
@@ -78,10 +94,7 @@ export async function POST(req: NextRequest) {
     });
 
     const proData = await proResp.json();
-    if (proData.error) {
-      console.error("Gemini Pro Error:", proData.error);
-      return NextResponse.json({ error: "Pro Error", raw: proData.error.message || JSON.stringify(proData.error) });
-    }
+    if (proData.error) return NextResponse.json({ error: "Pro Quota Exceeded", raw: proData.error.message });
 
     const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
@@ -97,7 +110,6 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (err: any) {
-    console.error("Server Crash:", err);
     return NextResponse.json({ error: "Server Crash", raw: err.message });
   }
 }
