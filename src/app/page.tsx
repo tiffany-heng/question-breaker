@@ -161,7 +161,7 @@ export default function QuestionBreaker() {
   // --- 3. DATABASE UPDATES ---
 
   const saveToDb = async (updates: Partial<QuestionData>, newStatus?: string) => {
-    if (!roomId) return;
+    if (!roomId) return null;
     const payload = {
       room_id: roomId,
       question_image_url: updates.questionImageUrl ?? data.questionImageUrl,
@@ -172,8 +172,20 @@ export default function QuestionBreaker() {
       is_solution_text_mode: isSolutionTextMode,
       status: newStatus || 'waiting'
     };
-    if (data.id) { await supabase.from('questions').update(payload).eq('id', data.id); }
-    else { const { data: created } = await supabase.from('questions').insert([payload]).select().single(); if (created) setData(p => ({ ...p, id: created.id })); }
+    
+    if (data.id) { 
+      const { error } = await supabase.from('questions').update(payload).eq('id', data.id);
+      if (error) console.error("Update Error:", error);
+      return data.id;
+    } else { 
+      const { data: created, error } = await supabase.from('questions').insert([payload]).select().single(); 
+      if (error) console.error("Insert Error:", error);
+      if (created) {
+        setData(p => ({ ...p, id: created.id })); 
+        return created.id;
+      }
+    }
+    return null;
   };
 
   // --- 4. CORE AI HANDLER ---
@@ -184,7 +196,14 @@ export default function QuestionBreaker() {
     setAiStep('AI Engine Initializing...');
 
     // 1. Force a sync so phone sees the spinner
-    await saveToDb({}, 'processing');
+    // We get the ID back from saveToDb to avoid stale state issues
+    const currentQuestionId = await saveToDb({}, 'processing');
+
+    if (!currentQuestionId) {
+      setAiStep('Failed to Initialize Question record');
+      setTimeout(() => setStatus('waiting'), 3000);
+      return;
+    }
 
     try {
       setAiStep('Processing Images & OCR...');
@@ -217,10 +236,10 @@ export default function QuestionBreaker() {
         extracted_text: result.extractedText,
         variations: result.variations,
         status: 'ready'
-      }).eq('id', data.id);
+      }).eq('id', currentQuestionId);
 
       if (updateError) {
-        setAiStep('Database Update Failed');
+        setAiStep('Database Update Failed: ' + updateError.message);
         console.error(updateError);
       } else {
         setAiStep('Success!');
