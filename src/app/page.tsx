@@ -160,6 +160,16 @@ export default function QuestionBreaker() {
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('questions').getPublicUrl(fileName);
       channelRef.current.send({ type: 'broadcast', event: 'IMAGE_UPLOADED', payload: { imageUrl: publicUrl, type, userSolutionText: userSolutionInput } });
+      
+      // Update local state immediately for the host
+      if (viewMode === 'desktop') {
+        setData(prev => ({
+          ...prev,
+          questionImageUrl: type === 'question' ? publicUrl : prev.questionImageUrl,
+          solutionImageUrl: type === 'solution' ? publicUrl : prev.solutionImageUrl,
+        }));
+      }
+
       setStatus('waiting');
       setImgSrc('');
     } catch (err: any) {
@@ -173,7 +183,6 @@ export default function QuestionBreaker() {
     setStatus('processing');
     setAiStep('Connecting to Gemini...');
     
-    // Determine what solution to send
     const finalSolutionText = isSolutionEnabled ? (solutionNotes || data.userSolutionText) : '';
     const finalSolutionImage = isSolutionEnabled ? data.solutionImageUrl : null;
 
@@ -204,6 +213,33 @@ export default function QuestionBreaker() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">
+      {/* GLOBAL CROPPING OVERLAY */}
+      {status === 'cropping' && imgSrc && (
+        <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col">
+          <div className="p-4 flex justify-between items-center text-white border-b border-white/10 bg-slate-950">
+            <button onClick={() => setStatus('waiting')} className="p-2"><X /></button>
+            <span className="font-bold text-xs uppercase tracking-widest text-indigo-400">Crop {activeUploadType}</span>
+            <button onClick={handleConfirmCrop} className="bg-indigo-600 px-6 py-2 rounded-full font-black text-xs uppercase shadow-lg">Confirm</button>
+          </div>
+          <div className="flex-1 overflow-auto bg-black flex items-center justify-center p-4">
+            <ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)} className="max-h-full">
+              <img ref={imgRef} src={imgSrc} alt="Crop" className="max-w-full max-h-[70vh] object-contain" />
+            </ReactCrop>
+          </div>
+          <div className="p-4 bg-slate-950 space-y-3">
+            {activeUploadType === 'question' && (
+              <textarea 
+                placeholder="Paste solution text here (optional)..." 
+                value={userSolutionInput} 
+                onChange={(e) => setUserSolutionInput(e.target.value)} 
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm outline-none h-20" 
+              />
+            )}
+            <button onClick={() => uploadToSupabase(rawFile!, activeUploadType)} className="w-full p-3 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-white/10">Skip Crop & Upload</button>
+          </div>
+        </div>
+      )}
+
       {/* 1. INITIAL VIEW */}
       {viewMode === null && (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -224,13 +260,6 @@ export default function QuestionBreaker() {
         <div className="flex-1 flex flex-col bg-white overflow-hidden pb-10">
           <header className="p-4 border-b flex justify-between items-center bg-slate-50/50"><strong>QB Mobile</strong><div className="px-3 py-1 bg-white border rounded-full text-xs font-mono font-bold text-slate-500 uppercase">ID: {sessionId}</div></header>
           <main className="flex-1 flex flex-col p-6 space-y-6 text-center relative overflow-y-auto">
-            {status === 'cropping' && imgSrc && (
-              <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col">
-                <div className="p-4 flex justify-between items-center text-white border-b border-white/10 bg-slate-950"><button onClick={() => setStatus('waiting')}><X /></button><span className="font-bold text-xs uppercase tracking-widest text-indigo-400">Crop {activeUploadType}</span><button onClick={handleConfirmCrop} className="bg-indigo-600 px-6 py-2 rounded-full font-black text-xs uppercase shadow-lg">Confirm</button></div>
-                <div className="flex-1 overflow-auto bg-black flex items-center justify-center p-4"><ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)} className="max-h-full"><img ref={imgRef} src={imgSrc} alt="Crop" className="max-w-full max-h-[60vh] object-contain" /></ReactCrop></div>
-                <div className="p-4 bg-slate-950 space-y-3">{activeUploadType === 'question' && <textarea placeholder="Paste solution text here (optional)..." value={userSolutionInput} onChange={(e) => setUserSolutionInput(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm outline-none h-20" />}<button onClick={() => uploadToSupabase(rawFile!, activeUploadType)} className="w-full p-3 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-white/10">Skip Crop & Upload</button></div>
-              </div>
-            )}
             {status === 'processing' || status === 'uploading' ? (
               <div className="flex-1 flex flex-col items-center justify-center space-y-4"><Loader2 className="w-12 h-12 text-indigo-600 animate-spin" /><p className="font-bold text-lg text-indigo-900">{status === 'uploading' ? 'Syncing...' : 'AI is Thinking...'}</p></div>
             ) : status === 'ready' ? (
