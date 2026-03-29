@@ -85,7 +85,7 @@ export default function QuestionBreaker() {
 
   const fetchHistory = async (rId: string) => {
     const { data: qList } = await supabase.from('questions').select('*').eq('room_id', rId).order('created_at', { ascending: false });
-    if (qList) setHistory(qList.map(q => ({
+    if (qList) setHistory(qList.map((q: any) => ({
       id: q.id,
       questionImageUrl: q.question_image_url,
       questionText: q.question_text || '',
