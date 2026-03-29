@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, X, Scissors, ArrowUpRight, MessageSquareText, Image as ImageIcon, ClipboardPaste, BrainCircuit, Trash2, Upload, FileText, PlusCircle, Type, ChevronDown, ChevronUp } from 'lucide-react';
+import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, X, Scissors, ArrowUpRight, MessageSquareText, Image as ImageIcon, ClipboardPaste, BrainCircuit, Trash2, Upload, FileText, PlusCircle, Type, ChevronDown, ChevronUp, Sparkles, Activity } from 'lucide-react';
 import { supabase, SESSION_CHANNEL_PREFIX } from '@/lib/supabase';
 import Latex from 'react-latex-next';
 import ReactCrop, { type Crop, PixelCrop } from 'react-image-crop';
@@ -175,7 +175,7 @@ export default function QuestionBreaker() {
     const hasQuestion = isQuestionTextMode ? data.questionText : data.questionImageUrl;
     if (!hasQuestion) return;
     setStatus('processing');
-    setAiStep('Connecting to Gemini...');
+    setAiStep('Initializing Neural Engine...');
     setDebugLog('');
     
     try {
@@ -237,14 +237,53 @@ export default function QuestionBreaker() {
       {/* 3. DESKTOP VIEW */}
       {viewMode === 'desktop' && (
         <div className="flex-1 flex flex-col relative">
-          <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0"><div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl underline decoration-indigo-100 decoration-4">QB</div><div className="flex items-center gap-4"><div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">{sessionId}</div><button onClick={() => window.location.reload()} className="text-xs font-semibold text-slate-400 hover:text-slate-600">End Session</button></div></header>
+          {pastedFile && (
+            <div className="absolute inset-0 z-50 bg-indigo-600/95 backdrop-blur-lg flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-300">
+              <div className="text-white text-center space-y-2"><ClipboardPaste size={64} className="mx-auto opacity-50" /><h2 className="text-3xl font-black italic">Image Pasted!</h2><p className="text-indigo-100 font-medium">How should we use this image?</p></div>
+              <div className="grid grid-cols-2 gap-4 w-full max-w-lg px-6"><button onClick={() => handlePasteChoice('question')} className="bg-white text-indigo-600 p-8 rounded-3xl font-black text-xl shadow-2xl hover:scale-105 transition-all flex flex-col items-center gap-3"><Camera size={32} /> Save as Question</button><button onClick={() => handlePasteChoice('solution')} className="bg-indigo-900/40 text-white p-8 rounded-3xl font-black text-xl shadow-2xl hover:scale-105 transition-all border border-white/20 flex flex-col items-center gap-3"><ImageIcon size={32} /> Save as Solution</button></div>
+              <button onClick={() => setPastedFile(null)} className="text-indigo-200 font-bold uppercase tracking-widest text-xs underline">Cancel Paste</button>
+            </div>
+          )}
+          
+          <header className="h-24 border-b bg-white flex items-center justify-between px-8 shrink-0 relative z-20 shadow-sm">
+            <div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl underline decoration-indigo-100 decoration-4">QB</div>
+            
+            {/* CENTRAL STATUS HUB */}
+            <div className="flex flex-col items-center gap-1.5">
+              {status === 'processing' ? (
+                <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 px-6 py-2 rounded-full animate-in zoom-in duration-300">
+                  <Loader2 size={16} className="text-indigo-600 animate-spin" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">{aiStep}</span>
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                </div>
+              ) : status === 'ready' ? (
+                <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-6 py-2 rounded-full animate-in fade-in duration-500">
+                  <CheckCircle2 size={16} className="text-green-600" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-green-600">Break Complete</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 text-slate-300">
+                  <Activity size={14} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.3em]">System Standby</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">{sessionId}</div>
+              <button onClick={() => window.location.reload()} className="text-xs font-semibold text-slate-400 hover:text-slate-600">End Session</button>
+            </div>
+          </header>
+          
           <main className="flex-1 flex overflow-hidden">
             <div className="w-1/2 border-r bg-slate-50/50 flex flex-col relative">
               <div className="flex-1 overflow-y-auto p-8 space-y-10 pb-40">
+                {/* QUESTION ZONE */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> The Question</h4><div className="flex items-center gap-2"><button onClick={() => setIsQuestionTextMode(!isQuestionTextMode)} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">{isQuestionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>{(data.questionImageUrl || data.questionText) && <button onClick={() => setData(p => ({ ...p, questionImageUrl: null, questionText: '' }))} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
                   {isQuestionTextMode ? ( <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))} className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white" /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Question Image</span></button> ) )}
                 </div>
+                {/* SOLUTION ZONE */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> Solution Reference</h4><div className="flex items-center gap-2">{isSolutionEnabled && <button onClick={() => setIsSolutionTextMode(!isSolutionTextMode)} className="text-[10px] font-black uppercase text-indigo-400 hover:underline">{isSolutionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>}{isSolutionEnabled && <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
                   {!isSolutionEnabled ? ( <button onClick={() => setIsSolutionEnabled(true)} className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 flex items-center justify-center gap-3 hover:bg-white hover:border-indigo-100 transition-all group"><PlusCircle size={20} className="group-hover:rotate-90 transition-transform" /><span className="text-[10px] font-black uppercase tracking-widest">Add Solution Context (Optional)</span></button> ) : ( isSolutionTextMode ? ( <textarea placeholder="Paste or type solution steps here..." value={data.solutionText} onChange={(e) => setData(p => ({ ...p, solutionText: e.target.value }))} className="w-full min-h-[150px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80" /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Solution Image</span></button> ) ) )}
@@ -255,7 +294,6 @@ export default function QuestionBreaker() {
                 {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && ( <button onClick={handleProcessImage} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all"><BrainCircuit className="text-indigo-400 group-hover:rotate-12 transition-transform" />Submit to Gemini 3.1</button> )}
                 {!(data.questionImageUrl || data.questionText) && <div className="flex items-center gap-3 text-slate-400 animate-pulse font-bold text-[10px] uppercase tracking-[0.2em]"><Smartphone size={16} /> Awaiting Input</div>}
               </div>
-              {status === 'processing' && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4 text-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold text-indigo-950 uppercase tracking-widest text-xs">AI Logic Engine Active</p><p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-white px-3 py-1 rounded-full shadow-sm">{aiStep}</p></div>}
             </div>
             
             <div className="w-1/2 bg-white flex flex-col overflow-y-auto">
@@ -264,26 +302,8 @@ export default function QuestionBreaker() {
                 {status === 'ready' ? (
                   data.variations.map((v, i) => (
                     <div key={i} className="border-2 border-slate-50 rounded-3xl overflow-hidden transition-all duration-300 hover:border-indigo-100">
-                      {/* ACCORDION HEADER */}
-                      <button 
-                        onClick={() => toggleVariation(i)} 
-                        className={`w-full p-6 flex justify-between items-center transition-colors ${expandedVariations[i] ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${expandedVariations[i] ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'}`}>{v.category}</span>
-                          <span className="font-bold text-sm tracking-tight">Expand Variation</span>
-                        </div>
-                        {expandedVariations[i] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                      </button>
-
-                      {/* ACCORDION CONTENT */}
-                      {expandedVariations[i] && (
-                        <div className="p-8 space-y-6 animate-in slide-in-from-top-2 duration-300">
-                          <div className="text-slate-700 leading-relaxed text-lg prose prose-indigo whitespace-pre-wrap"><Latex>{v.text}</Latex></div>
-                          <button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />} {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>
-                          {showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest text-center">Pedagogical Solution</div><div className="prose prose-slate max-w-none text-center whitespace-pre-wrap"><Latex>{v.solution}</Latex></div></div>}
-                        </div>
-                      )}
+                      <button onClick={() => toggleVariation(i)} className={`w-full p-6 flex justify-between items-center transition-colors ${expandedVariations[i] ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}><div className="flex items-center gap-3"><span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${expandedVariations[i] ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'}`}>{v.category}</span><span className="font-bold text-sm tracking-tight">Expand Variation</span></div>{expandedVariations[i] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>
+                      {expandedVariations[i] && ( <div className="p-8 space-y-6 animate-in slide-in-from-top-2 duration-300"><div className="text-slate-700 leading-relaxed text-lg prose prose-indigo whitespace-pre-wrap"><Latex>{v.text}</Latex></div><button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />} {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>{showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest text-center">Pedagogical Solution</div><div className="prose prose-slate max-w-none text-center whitespace-pre-wrap"><Latex>{v.solution}</Latex></div></div>}</div> )}
                     </div>
                   ))
                 ) : ( <div className="space-y-6 text-center py-20">{[1,2,3].map(i => <div key={i} className="space-y-3 animate-pulse opacity-20"><div className="h-4 w-24 bg-slate-100 rounded mx-auto"></div><div className="h-20 w-full bg-slate-50 rounded-2xl"></div></div>)}<p className="text-[10px] font-black text-slate-200 uppercase tracking-widest mt-4">Awaiting AI Logic</p></div> )}
