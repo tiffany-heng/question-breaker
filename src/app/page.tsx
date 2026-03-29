@@ -181,44 +181,47 @@ export default function QuestionBreaker() {
   const handleProcessWithAI = async () => {
     if (!roomId) return;
     setStatus('processing');
-    setAiStep('Connecting to Gemini 3.1...');
-    
+    setAiStep('AI Engine Initializing...');
+
     // 1. Force a sync so phone sees the spinner
     await saveToDb({}, 'processing');
 
     try {
-      const resp = await fetch('/api/process', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ 
-          questionImageUrl: isQuestionTextMode ? null : data.questionImageUrl, 
+      setAiStep('Processing Images & OCR...');
+      const resp = await fetch('/api/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionImageUrl: isQuestionTextMode ? null : data.questionImageUrl,
           questionText: isQuestionTextMode ? data.questionText : null,
-          solutionImageUrl: (isSolutionEnabled && !isSolutionTextMode) ? data.solutionImageUrl : null, 
-          solutionText: (isSolutionEnabled && isSolutionTextMode) ? data.solutionText : null 
-        }) 
+          solutionImageUrl: (isSolutionEnabled && !isSolutionTextMode) ? data.solutionImageUrl : null,
+          solutionText: (isSolutionEnabled && isSolutionTextMode) ? data.solutionText : null
+        })
       });
+
+      setAiStep('Running Pedagogical Reasoning...');
       const result = await resp.json();
-      if (result.error) { 
-        setAiStep('Error: ' + result.error); 
-        if (result.raw) setDebugLog(result.raw); 
+      if (result.error) {
+        setAiStep('AI Pipeline Error: ' + result.error);
+        if (result.raw) setDebugLog(result.raw);
         await saveToDb({}, 'waiting');
-        return; 
+        return;
       }
 
+      setAiStep('Finalizing Results...');
       // 2. SAVE RESULTS TO DB (This instantly updates the phone/iPad)
-      await supabase.from('questions').update({ 
-        extracted_text: result.extractedText, 
-        variations: result.variations, 
+      await supabase.from('questions').update({
+        extracted_text: result.extractedText,
+        variations: result.variations,
         status: 'ready'
       }).eq('id', data.id);
 
     } catch (err: any) {
-      setAiStep('AI Handshake Failed');
+      setAiStep('Network or API Failure');
       await saveToDb({}, 'waiting');
       setTimeout(() => setStatus('waiting'), 3000);
     }
   };
-
   // --- 5. MEDIA HELPERS ---
 
   const uploadToSupabase = async (file: File, type: ImageType) => {
