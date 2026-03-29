@@ -81,22 +81,27 @@ export default function QuestionBreaker() {
       const file = e.target.files[0];
       setRawFile(file);
       const reader = new FileReader();
-      reader.addEventListener('load', () => {
+      reader.onload = () => {
         setTempImage(reader.result as string);
         setStatus('cropping');
-      });
+      };
       reader.readAsDataURL(file);
     }
   };
 
-  const onCropComplete = useCallback((_a: any, pixels: any) => { setCroppedAreaPixels(pixels); }, []);
+  const onCropComplete = useCallback((_a: any, pixels: any) => {
+    setCroppedAreaPixels(pixels);
+  }, []);
 
   const handleConfirmCrop = async () => {
-    if (!tempImage || !croppedAreaPixels) return;
+    if (!tempImage || !croppedAreaPixels) {
+      alert("Please wait for image to load...");
+      return;
+    }
     setStatus('uploading');
     try {
       const croppedBlob = await getCroppedImg(tempImage, croppedAreaPixels);
-      const file = new File([croppedBlob], "cropped.jpg", { type: 'image/jpeg' });
+      const file = new File([croppedBlob], `crop-${Date.now()}.jpg`, { type: 'image/jpeg' });
       await uploadToSupabase(file);
     } catch (e: any) {
       alert("Crop failed: " + e.message);
@@ -112,7 +117,7 @@ export default function QuestionBreaker() {
 
   const uploadToSupabase = async (file: File) => {
     try {
-      const fileName = `${sessionId}/${Date.now()}-${file.name}`;
+      const fileName = `${sessionId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
       const { error } = await supabase.storage.from('questions').upload(fileName, file);
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('questions').getPublicUrl(fileName);
@@ -148,13 +153,14 @@ export default function QuestionBreaker() {
   if (viewMode === null) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-slate-900 font-sans">
-        <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100 text-center text-indigo-600 font-black italic text-4xl">QB.
-          <button onClick={startSession} className="mt-8 group flex items-center justify-between w-full p-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all shadow-lg shadow-indigo-200">
-            <div className="flex items-center gap-4 text-left"><Columns2 size={24} /><div className="font-bold text-lg italic-none not-italic">Host Session<div className="text-indigo-100 text-sm font-medium">On your laptop</div></div></div>
+        <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100 text-center">
+          <h1 className="text-4xl font-black text-indigo-600 italic">QB.</h1>
+          <button onClick={startSession} className="group flex items-center justify-between w-full p-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all shadow-lg shadow-indigo-200">
+            <div className="flex items-center gap-4 text-left"><Columns2 size={24} /><div className="font-bold text-lg">Host Session<div className="text-indigo-100 text-sm font-medium">On your laptop</div></div></div>
             <ChevronRight className="opacity-50" />
           </button>
-          <div className="relative py-4 italic-none not-italic font-normal text-xs text-slate-400 uppercase tracking-widest flex items-center justify-center gap-4"><div className="h-px flex-1 bg-slate-100"></div>or<div className="h-px flex-1 bg-slate-100"></div></div>
-          <div className="space-y-3 italic-none not-italic">
+          <div className="relative py-4 text-xs text-slate-400 uppercase tracking-widest flex items-center justify-center gap-4"><div className="h-px flex-1 bg-slate-100"></div>or<div className="h-px flex-1 bg-slate-100"></div></div>
+          <div className="space-y-3">
             <input type="text" placeholder="Enter ID" className="w-full p-4 rounded-xl border-2 border-slate-100 text-center font-mono text-xl uppercase" onChange={(e) => setSessionId(e.target.value.toUpperCase())} value={sessionId} />
             <button onClick={() => joinSession(sessionId)} className="w-full p-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100">Join Session</button>
           </div>
@@ -166,29 +172,49 @@ export default function QuestionBreaker() {
   if (viewMode === 'mobile') {
     return (
       <div className="min-h-screen bg-white flex flex-col text-slate-900 font-sans">
-        <header className="p-4 border-b flex justify-between items-center bg-slate-50/50"><strong>QB Mobile</strong><div className="px-3 py-1 bg-white border rounded-full text-xs font-mono font-bold text-slate-500">ID: {sessionId}</div></header>
+        <header className="p-4 border-b flex justify-between items-center bg-slate-50/50"><strong>QB Mobile</strong><div className="px-3 py-1 bg-white border rounded-full text-xs font-mono font-bold text-slate-500 uppercase">ID: {sessionId}</div></header>
         <main className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 text-center relative">
           {status === 'cropping' && tempImage && (
             <div className="fixed inset-0 z-50 bg-black flex flex-col">
-              <div className="flex-1 relative bg-black h-full w-full overflow-hidden">
-                <Cropper image={tempImage} crop={crop} zoom={zoom} aspect={undefined} onCropChange={setCrop} onCropComplete={onCropComplete} onZoomChange={setZoom} />
+              <div className="flex-1 relative bg-black">
+                <Cropper 
+                  image={tempImage} 
+                  crop={crop} 
+                  zoom={zoom} 
+                  aspect={4 / 3} 
+                  onCropChange={setCrop} 
+                  onCropComplete={onCropComplete} 
+                  onZoomChange={setZoom} 
+                />
               </div>
               <div className="p-4 bg-slate-900 grid grid-cols-2 gap-3">
                 <button onClick={() => setStatus('waiting')} className="text-white p-4 font-bold border border-white/20 rounded-xl">Cancel</button>
-                <button onClick={handleSkipCrop} className="text-indigo-300 p-4 font-bold border border-indigo-500/30 rounded-xl flex items-center justify-center gap-2">Skip Crop <ArrowUpRight size={16}/></button>
-                <button onClick={handleConfirmCrop} className="col-span-2 bg-indigo-600 text-white p-5 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg"><Scissors size={20} /> Crop & Upload</button>
+                <button onClick={handleSkipCrop} className="text-indigo-300 p-4 font-bold border border-indigo-500/30 rounded-xl flex items-center justify-center gap-2 text-sm">Skip Crop <ArrowUpRight size={14}/></button>
+                <button onClick={handleConfirmCrop} className="col-span-2 bg-indigo-600 text-white p-5 rounded-2xl flex items-center justify-center gap-2 font-black shadow-lg"><Scissors size={20} /> Use This Crop</button>
               </div>
             </div>
           )}
           {status === 'processing' || status === 'uploading' ? (
-            <div className="space-y-4"><Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto" /><p className="font-bold text-lg">{status === 'uploading' ? 'Uploading...' : 'AI Thinking...'}</p></div>
+            <div className="space-y-4"><Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto" /><p className="font-bold text-lg">{status === 'uploading' ? 'Uploading Image...' : 'AI is Thinking...'}</p></div>
           ) : status === 'ready' ? (
-            <div className="space-y-6"><div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 size={32} /></div><h2 className="text-2xl font-bold">Variations Ready!</h2><button onClick={() => setStatus('waiting')} className="p-4 bg-indigo-600 text-white rounded-2xl font-bold w-full">Upload Another</button></div>
+            <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 size={32} /></div>
+              <h2 className="text-2xl font-bold text-indigo-900">Variations Ready!</h2>
+              <p className="text-slate-500 text-sm">Check your laptop to see the logic variations.</p>
+              <button onClick={() => setStatus('waiting')} className="p-5 bg-indigo-600 text-white rounded-2xl font-black w-full shadow-lg">Upload Another</button>
+            </div>
           ) : (
             <>
               <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600"><Camera size={40} /></div>
-              <div className="space-y-2"><h2 className="text-2xl font-bold">Snap a Question</h2><p className="text-slate-500 text-sm">Take a clear photo of the problem.</p></div>
-              <label className="flex items-center justify-center w-full gap-3 p-5 bg-indigo-600 text-white rounded-2xl font-black text-lg active:scale-95 cursor-pointer shadow-lg"><Camera size={20} />Open Camera<input type="file" accept="image/*" capture="environment" className="hidden" onChange={onSelectFile} /></label>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold tracking-tight text-indigo-900">Snap a Question</h2>
+                <p className="text-slate-500 text-sm max-w-[250px] mx-auto">Take a photo of the problem you want to break.</p>
+              </div>
+              <label className="flex items-center justify-center w-full gap-3 p-5 bg-indigo-600 text-white rounded-2xl font-black text-lg active:scale-95 cursor-pointer shadow-lg shadow-indigo-100">
+                <Camera size={20} />
+                Open Camera
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={onSelectFile} />
+              </label>
             </>
           )}
         </main>
@@ -199,8 +225,8 @@ export default function QuestionBreaker() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans pb-10">
       <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0">
-        <div className="flex items-center gap-3"><div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xs italic">QB</div><span className="font-bold text-lg tracking-tight">Question Breaker</span></div>
-        <div className="flex items-center gap-4"><div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">{sessionId}</div><button onClick={() => window.location.reload()} className="text-xs font-semibold text-slate-400">End Session</button></div>
+        <div className="flex items-center gap-3"><div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xs italic">QB</div><span className="font-bold text-lg tracking-tight text-indigo-900">Question Breaker</span></div>
+        <div className="flex items-center gap-4"><div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">{sessionId}</div><button onClick={() => window.location.reload()} className="text-xs font-semibold text-slate-400 hover:text-slate-600">End Session</button></div>
       </header>
       <main className="flex-1 flex overflow-hidden">
         <div className="w-1/2 border-r bg-slate-50/50 flex flex-col relative">
@@ -231,12 +257,12 @@ export default function QuestionBreaker() {
                     <div className="flex items-center gap-2"><span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded uppercase tracking-wider">{v.category}</span><div className="h-px flex-1 bg-slate-100"></div></div>
                     <div className="text-slate-700 leading-relaxed text-lg prose prose-indigo"><Latex>{v.text}</Latex></div>
                     <button onClick={() => toggleSolution(i)} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />}{showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>
-                    {showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest">Pedagogical Solution</div><div className="prose prose-slate max-w-none"><Latex>{v.solution}</Latex></div></div>}
+                    {showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest">Pedagogical Solution</div><div className="prose prose-slate max-w-none text-base"><Latex>{v.solution}</Latex></div></div>}
                   </div>
                 ))}
               </div>
             ) : (status === 'waiting' && !data.imageUrl) ? (
-              <div className="flex flex-col items-center justify-center h-64 text-slate-100"><Columns2 size={80} className="mb-4" /><p className="text-sm font-black uppercase tracking-[0.3em] text-slate-200">Waiting for Upload</p></div>
+              <div className="flex flex-col items-center justify-center h-64 text-slate-100"><Columns2 size={80} className="mb-4" /><p className="text-sm font-black uppercase tracking-[0.3em] text-slate-200 text-center">Waiting for<br/>Phone Upload</p></div>
             ) : <div className="space-y-6">{[1,2,3].map(i => <div key={i} className="space-y-3 animate-pulse"><div className="h-4 w-24 bg-slate-100 rounded"></div><div className="h-20 w-full bg-slate-50 rounded-2xl"></div></div>)}</div>}
           </div>
         </div>
@@ -245,19 +271,15 @@ export default function QuestionBreaker() {
   );
 }
 
-// Helper: Improved getCroppedImg
+// Helper: Better getCroppedImg
 async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<Blob> {
-  const image = await new Promise<HTMLImageElement>((res, rej) => {
-    const img = new Image();
-    img.src = imageSrc;
-    img.onload = () => res(img);
-    img.onerror = rej;
-  });
+  const img = new Image();
+  img.src = imageSrc;
+  await new Promise((res) => (img.onload = res));
   const canvas = document.createElement('canvas');
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error("No context");
-  ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
-  return new Promise((res) => { canvas.toBlob((b) => { if (b) res(b); }, 'image/jpeg', 0.95); });
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(img, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
+  return new Promise((res) => canvas.toBlob((b) => res(b!), 'image/jpeg', 0.9));
 }
