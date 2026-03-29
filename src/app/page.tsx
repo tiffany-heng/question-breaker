@@ -162,7 +162,7 @@ export default function QuestionBreaker() {
 
   const saveToDb = async (updates: Partial<QuestionData>, newStatus?: string) => {
     if (!roomId) return null;
-    const payload = {
+    const payload: any = {
       room_id: roomId,
       question_image_url: updates.questionImageUrl ?? data.questionImageUrl,
       question_text: updates.questionText ?? data.questionText,
@@ -173,17 +173,30 @@ export default function QuestionBreaker() {
       status: newStatus || 'waiting'
     };
     
-    if (data.id) { 
-      const { error } = await supabase.from('questions').update(payload).eq('id', data.id);
-      if (error) console.error("Update Error:", error);
-      return data.id;
-    } else { 
-      const { data: created, error } = await supabase.from('questions').insert([payload]).select().single(); 
-      if (error) console.error("Insert Error:", error);
-      if (created) {
-        setData(p => ({ ...p, id: created.id })); 
-        return created.id;
+    try {
+      if (data.id) { 
+        const { error } = await supabase.from('questions').update(payload).eq('id', data.id);
+        if (error) {
+          console.error("Supabase Update Error:", error);
+          setDebugLog(`DB Update Error: ${error.message} (${error.code})`);
+          return null;
+        }
+        return data.id;
+      } else { 
+        const { data: created, error } = await supabase.from('questions').insert([payload]).select().single(); 
+        if (error) {
+          console.error("Supabase Insert Error:", error);
+          setDebugLog(`DB Insert Error: ${error.message} (${error.code})`);
+          return null;
+        }
+        if (created) {
+          setData(p => ({ ...p, id: created.id })); 
+          return created.id;
+        }
       }
+    } catch (err: any) {
+      console.error("saveToDb Crash:", err);
+      setDebugLog(`Local state crash: ${err.message}`);
     }
     return null;
   };
@@ -194,14 +207,16 @@ export default function QuestionBreaker() {
     if (!roomId) return;
     setStatus('processing');
     setAiStep('AI Engine Initializing...');
+    setDebugLog(''); // Clear old errors
 
     // 1. Force a sync so phone sees the spinner
     // We get the ID back from saveToDb to avoid stale state issues
     const currentQuestionId = await saveToDb({}, 'processing');
 
     if (!currentQuestionId) {
-      setAiStep('Failed to Initialize Question record');
-      setTimeout(() => setStatus('waiting'), 3000);
+      // If saveToDb failed, it already updated the debug log
+      setAiStep('Initialization Failed - Check API Diagnostic');
+      setTimeout(() => setStatus('waiting'), 4000);
       return;
     }
 
