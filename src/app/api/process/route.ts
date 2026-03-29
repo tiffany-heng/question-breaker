@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     let finalQuestionText = questionText || '';
     let finalSolutionText = solutionText || '';
 
-    // --- STEP 1: OCR (Only if text wasn't provided directly) ---
+    // --- STEP 1: OCR ---
     const imagesToProcess: { mime_type: string, data: string }[] = [];
     if (!finalQuestionText && questionImageUrl) {
       const qResp = await fetch(questionImageUrl);
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     if (imagesToProcess.length > 0) {
       const flashParts: any[] = imagesToProcess.map(img => ({ inline_data: img }));
-      flashParts.push({ text: "EXTRACT ALL TEXT. The first image is a QUESTION, the second (if exists) is a SOLUTION. Preserve LaTeX. DO NOT SOLVE." });
+      flashParts.push({ text: "EXTRACT ALL TEXT. QUESTION first, then SOLUTION. Preserve LaTeX. DO NOT SOLVE." });
 
       const flashResp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${OCR_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: "user", parts: flashParts }] })
@@ -48,44 +48,25 @@ export async function POST(req: NextRequest) {
       if (!finalQuestionText) finalQuestionText = ocrResult;
     }
 
-    if (!finalQuestionText) return NextResponse.json({ error: "No question content found" });
+    if (!finalQuestionText) return NextResponse.json({ error: "No content found" });
 
-    // --- STEP 2: Advanced Pedagogical Reasoning (Gemini 3.1) ---
+    // --- STEP 2: Reasoning ---
     const reasoningPrompt = `
-      You are a Senior Pedagogical Architect. 
+      You are a Senior Pedagogical Architect.
       
-      INPUT QUESTION: 
-      "${finalQuestionText}"
-      
-      USER'S PROVIDED SOLUTION (Reference for Rigor & Structure ONLY):
-      "${finalSolutionText || 'Not provided'}"
+      INPUT QUESTION: "${finalQuestionText}"
+      REFERENCE SOLUTION (Rigor Benchmark): "${finalSolutionText || 'Not provided'}"
       
       TASK:
-      1. INTERNAL INTERPRETATION (Deconstruct):
-         - Identify Core concept(s) and Sub-concepts.
-         - Map out Constraints and Hidden assumptions.
+      1. ANALYZE: Identify Core concepts, Constraints, and Hidden assumptions.
+      2. GENERATE 4 variations: Conceptual Flip, Constraint Change, Edge Case, Hybrid Problem, or Abstraction Jump.
+      3. FORMATTING (CRITICAL):
+         - For Multiple Choice Questions, put every option on a NEW LINE starting with "i.", "ii.", "iii.", "iv.".
+         - Use actual newline characters between options.
+         - Ensure math is in LaTeX.
+      4. RIGOR: Match the academic depth of the reference solution.
       
-      2. APPLY "NEAR-MISS" LOGIC:
-         - Identify where a student would fail or take a shortcut.
-         - Design variations that specifically target those insights.
-      
-      3. VARIATION STRATEGY:
-         - Change only ONE or TWO dimensions while testing the SAME core concept.
-         - Increase conceptual difficulty or abstraction.
-      
-      4. GENERATE 4 VARIATIONS based on these types:
-         - Conceptual Flip (Reverse objective or solve for a different parameter)
-         - Constraint Change (Change a physical/logical limit to force a new approach)
-         - Edge Case (Testing the boundaries where standard logic is challenged)
-         - Hybrid Problem (Inject a concept from a related sub-topic)
-         - Abstraction Jump (Generalize the problem or move to a higher-order system)
-      
-      5. RIGOR MATCHING:
-         - The resulting solutions MUST match the academic rigor, depth, and step-by-step sophistication of the user's provided solution.
-      
-      OUTPUT FORMAT: JSON array of 4 objects.
-      Keys: "category", "text", "solution". 
-      Use LaTeX for all math.
+      OUTPUT: JSON array of objects with keys "category", "text", "solution".
     `;
 
     const proResp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${REASONING_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
@@ -98,8 +79,6 @@ export async function POST(req: NextRequest) {
     });
 
     const proData = await proResp.json();
-    if (proData.error) return NextResponse.json({ error: "Reasoning Error", raw: proData.error.message });
-
     const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     try {
@@ -110,9 +89,8 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({ extractedText: finalQuestionText, variations });
     } catch (e) {
-      return NextResponse.json({ error: "JSON Parse Error", raw: rawText });
+      return NextResponse.json({ error: "JSON Error", raw: rawText });
     }
-
   } catch (err: any) {
     return NextResponse.json({ error: "Server Crash", raw: err.message });
   }
