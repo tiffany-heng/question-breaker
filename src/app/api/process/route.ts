@@ -19,32 +19,38 @@ async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promis
 
 export async function POST(req: NextRequest) {
   try {
-    const { questionImageUrl, questionText, solutionImageUrl, userSolutionText } = await req.json();
+    const { questionImageUrl, questionText, solutionImageUrl, solutionText } = await req.json();
     if (!GEMINI_API_KEY) return NextResponse.json({ error: 'Key missing' });
 
     let finalQuestionText = questionText || '';
+    let finalSolutionText = solutionText || '';
 
-    // --- STEP 1: OCR (Only if text wasn't provided directly) ---
+    // --- STEP 1: OCR (Only for parts provided as images) ---
+    const imagesToProcess: { mime_type: string, data: string }[] = [];
+    
+    // 1a. Load Question Image if needed
     if (!finalQuestionText && questionImageUrl) {
       const qResp = await fetch(questionImageUrl);
-      if (!qResp.ok) return NextResponse.json({ error: "Could not load question image" });
-      const qBuffer = await qResp.arrayBuffer();
-      const qBase64 = Buffer.from(qBuffer).toString('base64');
-
-      let sBase64 = '';
-      if (solutionImageUrl && solutionImageUrl.startsWith('http')) {
-        try {
-          const sResp = await fetch(solutionImageUrl);
-          if (sResp.ok) {
-            const sBuffer = await sResp.arrayBuffer();
-            sBase64 = Buffer.from(sBuffer).toString('base64');
-          }
-        } catch (e) {}
+      if (qResp.ok) {
+        const qBuffer = await qResp.arrayBuffer();
+        imagesToProcess.push({ mime_type: 'image/jpeg', data: Buffer.from(qBuffer).toString('base64') });
       }
+    }
 
-      const flashParts: any[] = [{ inline_data: { mime_type: 'image/jpeg', data: qBase64 } }];
-      if (sBase64) flashParts.push({ inline_data: { mime_type: 'image/jpeg', data: sBase64 } });
-      flashParts.push({ text: "EXTRACT ALL TEXT FROM THESE IMAGES. DO NOT SOLVE. Preserve LaTeX." });
+    // 1b. Load Solution Image if needed
+    if (!finalSolutionText && solutionImageUrl && solutionImageUrl.startsWith('http')) {
+      const sResp = await fetch(solutionImageUrl);
+      if (sResp.ok) {
+        const sBuffer = await sResp.arrayBuffer();
+        imagesToProcess.push({ mime_type: 'image/jpeg', data: Buffer.from(sBuffer).toString('base64') });
+      }
+    }
+
+    // Trigger OCR only if we have images and are missing text
+    if (imagesToProcess.length > 0) {
+      const flashParts: any[] = imagesToProcess.map(img => ({ inline_data: img }));
+      const imageCount = imagesToProcess.length;
+      flashParts.push({ text: `I have provided exactly ${imageCount} image(s). EXTRACT ALL TEXT FROM ALL IMAGES. DO NOT SOLVE. Preserve LaTeX. Output the text clearly.` });
 
       const flashResp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${OCR_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: "user", parts: flashParts }] })
@@ -52,7 +58,12 @@ export async function POST(req: NextRequest) {
       
       const flashData = await flashResp.json();
       if (flashData.error) return NextResponse.json({ error: "OCR Error", raw: flashData.error.message });
-      finalQuestionText = flashData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      const ocrResult = flashData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      // Distribute OCR results
+      if (!finalQuestionText) finalQuestionText = ocrResult;
+      // If we provided 2 images, the ocrResult usually contains both combined
     }
 
     if (!finalQuestionText) return NextResponse.json({ error: "No question content found" });
@@ -61,7 +72,7 @@ export async function POST(req: NextRequest) {
     const reasoningPrompt = `
       You are a Pedagogical Engineer. 
       QUESTION: "${finalQuestionText}"
-      HINT: "${userSolutionText || 'None'}"
+      GROUND TRUTH SOLUTION: "${finalSolutionText || 'None provided'}"
       TASK: Generate 4 pedagogical variations in JSON array: "category", "text", "solution".
     `;
 
