@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, X, Scissors, ArrowUpRight, MessageSquareText, Image as ImageIcon, ClipboardPaste, BrainCircuit, Trash2, Upload, FileText, PlusCircle } from 'lucide-react';
+import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, X, Scissors, ArrowUpRight, MessageSquareText, Image as ImageIcon, ClipboardPaste, BrainCircuit, Trash2, Upload, FileText, PlusCircle, Type } from 'lucide-react';
 import { supabase, SESSION_CHANNEL_PREFIX } from '@/lib/supabase';
 import Latex from 'react-latex-next';
 import ReactCrop, { type Crop, PixelCrop } from 'react-image-crop';
@@ -14,6 +14,7 @@ type ImageType = 'question' | 'solution';
 
 interface QuestionData {
   questionImageUrl: string | null;
+  questionText: string;
   solutionImageUrl: string | null;
   extractedText: string;
   userSolutionText: string;
@@ -32,6 +33,7 @@ export default function QuestionBreaker() {
   
   const [data, setData] = useState<QuestionData>({ 
     questionImageUrl: null, 
+    questionText: '',
     solutionImageUrl: null, 
     extractedText: '', 
     userSolutionText: '', 
@@ -40,6 +42,7 @@ export default function QuestionBreaker() {
 
   // State for Laptop Workflow
   const [isSolutionEnabled, setIsSolutionEnabled] = useState(false);
+  const [isQuestionTextMode, setIsQuestionTextMode] = useState(false);
   const [solutionNotes, setSolutionNotes] = useState('');
 
   // Paste / Cropping State
@@ -86,7 +89,10 @@ export default function QuestionBreaker() {
       .on('broadcast', { event: 'IMAGE_UPLOADED' }, ({ payload }: { payload: { imageUrl: string, type: ImageType, userSolutionText?: string } }) => {
         setData(prev => {
           const newData = { ...prev };
-          if (payload.type === 'question') newData.questionImageUrl = payload.imageUrl;
+          if (payload.type === 'question') {
+            newData.questionImageUrl = payload.imageUrl;
+            setIsQuestionTextMode(false);
+          }
           if (payload.type === 'solution') {
             newData.solutionImageUrl = payload.imageUrl;
             setIsSolutionEnabled(true);
@@ -157,17 +163,14 @@ export default function QuestionBreaker() {
     if (!rawFile) return;
     setStatus('uploading');
     try {
-      // Force conversion to JPEG even on skip to avoid MIME errors in Gemini
       const img = new Image();
       img.src = URL.createObjectURL(rawFile);
       await new Promise((resolve) => (img.onload = resolve));
-      
       const canvas = document.createElement('canvas');
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(img, 0, 0);
-      
       canvas.toBlob(async (blob) => {
         if (blob) {
           const file = new File([blob], `${activeUploadType}-${Date.now()}.jpg`, { type: 'image/jpeg' });
@@ -175,7 +178,6 @@ export default function QuestionBreaker() {
         }
       }, 'image/jpeg', 0.95);
     } catch (e) {
-      // Fallback if conversion fails
       await uploadToSupabase(rawFile, activeUploadType);
     }
   };
@@ -188,15 +190,14 @@ export default function QuestionBreaker() {
       const { data: { publicUrl } } = supabase.storage.from('questions').getPublicUrl(fileName);
       channelRef.current.send({ type: 'broadcast', event: 'IMAGE_UPLOADED', payload: { imageUrl: publicUrl, type, userSolutionText: userSolutionInput } });
       
-      // Update local state immediately for the host
       if (viewMode === 'desktop') {
         setData(prev => ({
           ...prev,
           questionImageUrl: type === 'question' ? publicUrl : prev.questionImageUrl,
           solutionImageUrl: type === 'solution' ? publicUrl : prev.solutionImageUrl,
         }));
+        if (type === 'question') setIsQuestionTextMode(false);
       }
-
       setStatus('waiting');
       setImgSrc('');
     } catch (err: any) {
@@ -206,10 +207,12 @@ export default function QuestionBreaker() {
   };
 
   const handleProcessImage = async () => {
-    if (!data.questionImageUrl) return;
+    const hasQuestion = isQuestionTextMode ? data.questionText : data.questionImageUrl;
+    if (!hasQuestion) return;
+
     setStatus('processing');
     setAiStep('Connecting to Gemini...');
-    setDebugLog(''); // Clear old logs
+    setDebugLog('');
     
     const finalSolutionText = isSolutionEnabled ? (solutionNotes || data.userSolutionText) : '';
     const finalSolutionImage = isSolutionEnabled ? data.solutionImageUrl : null;
@@ -219,7 +222,8 @@ export default function QuestionBreaker() {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
-          questionImageUrl: data.questionImageUrl, 
+          questionImageUrl: isQuestionTextMode ? null : data.questionImageUrl, 
+          questionText: isQuestionTextMode ? data.questionText : null,
           solutionImageUrl: finalSolutionImage, 
           userSolutionText: finalSolutionText 
         }) 
@@ -324,9 +328,27 @@ export default function QuestionBreaker() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> The Question</h4>
-                    {data.questionImageUrl && <button onClick={() => setData(p => ({ ...p, questionImageUrl: null }))} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setIsQuestionTextMode(!isQuestionTextMode)} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">{isQuestionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>
+                      {(data.questionImageUrl || data.questionText) && <button onClick={() => setData(p => ({ ...p, questionImageUrl: null, questionText: '' }))} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}
+                    </div>
                   </div>
-                  {data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white" /> : <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Click or Paste Question Image</span></button>}
+                  
+                  {isQuestionTextMode ? (
+                    <textarea 
+                      placeholder="Paste or type your question here..."
+                      value={data.questionText}
+                      onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))}
+                      className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                    />
+                  ) : (
+                    data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white" /> : (
+                      <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group">
+                        <Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold uppercase tracking-widest text-center px-10">Click or Paste Question Image</span>
+                      </button>
+                    )
+                  )}
                 </div>
 
                 {/* SOLUTION NOTES (Textbox) */}
@@ -362,7 +384,7 @@ export default function QuestionBreaker() {
 
               {/* ACTION BAR (Submit & Add Solution) */}
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center space-y-4">
-                {data.questionImageUrl && status !== 'processing' && status !== 'ready' && (
+                {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && (
                   <>
                     <button onClick={handleProcessImage} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all">
                       <BrainCircuit className="text-indigo-400" />
@@ -379,7 +401,7 @@ export default function QuestionBreaker() {
                     )}
                   </>
                 )}
-                {!data.questionImageUrl && <div className="flex items-center gap-3 text-slate-400 animate-pulse"><Smartphone size={16} /><p className="text-[10px] font-bold uppercase tracking-[0.2em]">Awaiting Question Image</p></div>}
+                {!(data.questionImageUrl || data.questionText) && <div className="flex items-center gap-3 text-slate-400 animate-pulse"><Smartphone size={16} /><p className="text-[10px] font-bold uppercase tracking-[0.2em]">Awaiting Question Input</p></div>}
               </div>
 
               {status === 'processing' && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4 text-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold text-indigo-950 uppercase tracking-widest text-xs">AI Logic Engine Active</p><p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-white px-3 py-1 rounded-full shadow-sm">{aiStep}</p></div>}
