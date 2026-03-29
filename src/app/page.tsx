@@ -81,7 +81,42 @@ export default function QuestionBreaker() {
       setIsInitializing(false);
     };
     bootstrap();
-  }, []);
+
+    // Global Paste Handler for Images
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            e.preventDefault(); // Stop default behavior for image pastes
+            
+            // Determine target based on focus
+            let targetType = activeUploadType;
+            if (document.activeElement?.classList.contains('question-input')) {
+              targetType = 'question';
+            } else if (document.activeElement?.classList.contains('solution-input')) {
+              targetType = 'solution';
+            }
+            
+            setActiveUploadType(targetType);
+            setRawFile(file);
+            const reader = new FileReader();
+            reader.onload = () => {
+              setImgSrc(reader.result?.toString() || '');
+              setStatus('cropping');
+            };
+            reader.readAsDataURL(file);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, [activeUploadType]); // Re-bind if upload type changes or just rely on closure if stable
 
   const fetchHistory = async (rId: string) => {
     const { data: qList } = await supabase.from('questions').select('*').eq('room_id', rId).order('created_at', { ascending: false });
