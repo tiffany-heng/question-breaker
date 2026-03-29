@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     if (!finalQuestionText) return NextResponse.json({ error: "No content found" });
 
-    // --- STEP 2: Reasoning ---
+    // --- STEP 2: Reasoning (Pedagogical Architect) ---
     const reasoningPrompt = `
       You are a Senior Pedagogical Architect.
       
@@ -60,11 +60,16 @@ export async function POST(req: NextRequest) {
       TASK:
       1. ANALYZE: Identify Core concepts, Constraints, and Hidden assumptions.
       2. GENERATE 4 variations: Conceptual Flip, Constraint Change, Edge Case, Hybrid Problem, or Abstraction Jump.
-      3. FORMATTING (CRITICAL):
-         - For Multiple Choice Questions, put every option on a NEW LINE starting with "i.", "ii.", "iii.", "iv.".
+      
+      3. QUESTION FORMATTING (STRICT):
+         - Start every question with a type label: [MCQ - Choose only one], [MRQ - Select all that apply], or [SRQ - Short Response].
+         - For MCQs/MRQs, put every option on a NEW LINE starting with "i.", "ii.", "iii.", "iv.".
          - Use actual newline characters between options.
          - Ensure math is in LaTeX.
-      4. RIGOR: Match the academic depth of the reference solution.
+      
+      4. SOLUTION RIGOR (STRICT):
+         - Provide a detailed step-by-step solution matching the reference rigor.
+         - FOR MCQ/MRQ: You MUST explicitly address EVERY option. Explain why the correct ones are correct AND why every incorrect one is wrong (distractor analysis).
       
       OUTPUT: JSON array of objects with keys "category", "text", "solution".
     `;
