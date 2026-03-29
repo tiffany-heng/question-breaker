@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, X, Scissors, ArrowUpRight, MessageSquareText, Image as ImageIcon, ClipboardPaste, BrainCircuit, Trash2, Upload } from 'lucide-react';
+import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, X, Scissors, ArrowUpRight, MessageSquareText, Image as ImageIcon, ClipboardPaste, BrainCircuit, Trash2, Upload, FileText, PlusCircle } from 'lucide-react';
 import { supabase, SESSION_CHANNEL_PREFIX } from '@/lib/supabase';
 import Latex from 'react-latex-next';
 import ReactCrop, { type Crop, PixelCrop } from 'react-image-crop';
@@ -38,6 +38,10 @@ export default function QuestionBreaker() {
     variations: [] 
   });
 
+  // State for Laptop Workflow
+  const [isSolutionEnabled, setIsSolutionEnabled] = useState(false);
+  const [solutionNotes, setSolutionNotes] = useState('');
+
   // Paste / Cropping State
   const [pastedFile, setPastedFile] = useState<File | null>(null);
   const [activeUploadType, setActiveUploadType] = useState<ImageType>('question');
@@ -72,6 +76,7 @@ export default function QuestionBreaker() {
     setStatus('uploading');
     await uploadToSupabase(pastedFile, type);
     setPastedFile(null);
+    if (type === 'solution') setIsSolutionEnabled(true);
   };
 
   const subscribeToSession = (id: string, isHost: boolean) => {
@@ -82,8 +87,14 @@ export default function QuestionBreaker() {
         setData(prev => {
           const newData = { ...prev };
           if (payload.type === 'question') newData.questionImageUrl = payload.imageUrl;
-          if (payload.type === 'solution') newData.solutionImageUrl = payload.imageUrl;
-          if (payload.userSolutionText) newData.userSolutionText = payload.userSolutionText;
+          if (payload.type === 'solution') {
+            newData.solutionImageUrl = payload.imageUrl;
+            setIsSolutionEnabled(true);
+          }
+          if (payload.userSolutionText) {
+            newData.userSolutionText = payload.userSolutionText;
+            setIsSolutionEnabled(true);
+          }
           return newData;
         });
         setStatus('waiting');
@@ -148,13 +159,7 @@ export default function QuestionBreaker() {
       const { error } = await supabase.storage.from('questions').upload(fileName, file);
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('questions').getPublicUrl(fileName);
-      
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'IMAGE_UPLOADED',
-        payload: { imageUrl: publicUrl, type, userSolutionText: userSolutionInput }
-      });
-      
+      channelRef.current.send({ type: 'broadcast', event: 'IMAGE_UPLOADED', payload: { imageUrl: publicUrl, type, userSolutionText: userSolutionInput } });
       setStatus('waiting');
       setImgSrc('');
     } catch (err: any) {
@@ -167,19 +172,24 @@ export default function QuestionBreaker() {
     if (!data.questionImageUrl) return;
     setStatus('processing');
     setAiStep('Connecting to Gemini...');
+    
+    // Determine what solution to send
+    const finalSolutionText = isSolutionEnabled ? (solutionNotes || data.userSolutionText) : '';
+    const finalSolutionImage = isSolutionEnabled ? data.solutionImageUrl : null;
+
     try {
       const resp = await fetch('/api/process', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
           questionImageUrl: data.questionImageUrl, 
-          solutionImageUrl: data.solutionImageUrl, 
-          userSolutionText: data.userSolutionText 
+          solutionImageUrl: finalSolutionImage, 
+          userSolutionText: finalSolutionText 
         }) 
       });
       const result = await resp.json();
       if (result.error) { 
-        setAiStep('Gemini Error: ' + result.error); 
+        setAiStep('Error: ' + result.error); 
         if (result.raw) setDebugLog(result.raw); 
         return; 
       }
@@ -187,13 +197,13 @@ export default function QuestionBreaker() {
       setStatus('ready');
       channelRef.current.send({ type: 'broadcast', event: 'VARIATIONS_READY', payload: result });
     } catch (err: any) {
-      setAiStep('Server Connection Failed');
+      setAiStep('Connection Failed');
       setTimeout(() => setStatus('waiting'), 3000);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans pb-10">
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">
       {/* 1. INITIAL VIEW */}
       {viewMode === null && (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -246,55 +256,68 @@ export default function QuestionBreaker() {
           )}
           
           <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0">
-            <div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl">QB</div>
+            <div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl underline decoration-indigo-100 decoration-4">QB</div>
             <div className="flex items-center gap-4"><div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">{sessionId}</div><button onClick={() => window.location.reload()} className="text-xs font-semibold text-slate-400 hover:text-slate-600">End Session</button></div>
           </header>
           
           <main className="flex-1 flex overflow-hidden">
             <div className="w-1/2 border-r bg-slate-50/50 flex flex-col relative">
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 pb-32">
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 pb-40">
                 {/* QUESTION ZONE */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> The Question</h4>
                     {data.questionImageUrl && <button onClick={() => setData(p => ({ ...p, questionImageUrl: null }))} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}
                   </div>
-                  {data.questionImageUrl ? (
-                    <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white" />
-                  ) : (
-                    <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-colors group">
-                      <Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Click or Paste Question</span>
-                    </button>
-                  )}
+                  {data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white" /> : <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Click or Paste Question Image</span></button>}
                 </div>
 
-                {/* SOLUTION ZONE */}
+                {/* SOLUTION NOTES (Textbox) */}
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> Solution Reference</h4>
-                    {data.solutionImageUrl && <button onClick={() => setData(p => ({ ...p, solutionImageUrl: null }))} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}
-                  </div>
-                  {data.solutionImageUrl ? (
-                    <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80" />
-                  ) : (
-                    <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full p-10 bg-white/30 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-colors group">
-                      <MessageSquareText size={24} className="opacity-20 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Click or Paste Solution</span>
-                    </button>
-                  )}
-                  {data.userSolutionText && <div className="bg-indigo-600 text-white p-6 rounded-2xl text-sm font-medium shadow-xl">{data.userSolutionText}</div>}
+                  <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><FileText size={12}/> Solution Notes & Details</h4>
+                  <textarea 
+                    placeholder="Paste solution steps or additional hints for Gemini 3.1 here..."
+                    value={solutionNotes || data.userSolutionText}
+                    onChange={(e) => setSolutionNotes(e.target.value)}
+                    className="w-full min-h-[120px] bg-white rounded-2xl p-5 text-sm border-2 border-slate-100 focus:border-indigo-500 outline-none transition-all shadow-sm shadow-slate-100"
+                  />
                 </div>
-              </div>
 
-              {/* ACTION BAR */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center">
-                {data.questionImageUrl && status !== 'processing' && status !== 'ready' && (
-                  <button onClick={handleProcessImage} className="group bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-5 rounded-full font-black text-lg shadow-2xl shadow-indigo-200 flex items-center gap-4 animate-in zoom-in duration-300"><BrainCircuit className="group-hover:rotate-12 transition-transform" />Process with AI</button>
+                {/* SOLUTION IMAGE ZONE */}
+                {isSolutionEnabled && (
+                  <div className="space-y-3 animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><ImageIcon size={12}/> Solution Image</h4>
+                      <button onClick={() => { setData(p => ({ ...p, solutionImageUrl: null })); setIsSolutionEnabled(false); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>
+                    </div>
+                    {data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80" /> : <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full p-10 bg-white/30 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><ImageIcon size={24} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-[10px] font-bold uppercase tracking-widest text-center px-10">Click or Paste Solution Image</span></button>}
+                  </div>
                 )}
               </div>
 
-              {status === 'processing' && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold text-indigo-950 uppercase tracking-widest text-xs text-center">AI Logic Engine Active<br/><span className="text-[10px] text-slate-400 font-normal">{aiStep}</span></p></div>}
+              {/* ACTION BAR (Submit & Add Solution) */}
+              <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center space-y-4">
+                {data.questionImageUrl && status !== 'processing' && status !== 'ready' && (
+                  <>
+                    <button onClick={handleProcessImage} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all">
+                      <BrainCircuit className="text-indigo-400" />
+                      Submit to Gemini 3.1
+                    </button>
+                    
+                    {!isSolutionEnabled && (
+                      <button 
+                        onClick={() => setIsSolutionEnabled(true)} 
+                        className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2 hover:text-indigo-800"
+                      >
+                        <PlusCircle size={14} /> Add Solution Reference
+                      </button>
+                    )}
+                  </>
+                )}
+                {!data.questionImageUrl && <div className="flex items-center gap-3 text-slate-400 animate-pulse"><Smartphone size={16} /><p className="text-[10px] font-bold uppercase tracking-[0.2em]">Awaiting Question Image</p></div>}
+              </div>
+
+              {status === 'processing' && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4 text-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold text-indigo-950 uppercase tracking-widest text-xs">AI Logic Engine Active</p><p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-white px-3 py-1 rounded-full shadow-sm">{aiStep}</p></div>}
             </div>
             <div className="w-1/2 bg-white flex flex-col overflow-y-auto"><div className="p-4 border-b sticky top-0 bg-white/90 backdrop-blur z-10 flex justify-between items-center px-8"><h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Variations</h3><div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter">Gemini 3.1 Pro</div></div><div className="p-8 space-y-12">{status === 'ready' ? <div className="space-y-10 pb-20">{data.variations.map((v, i) => (<div key={i} className="group space-y-4 animate-in fade-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${i*150}ms` }}><div className="flex items-center gap-2"><span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded uppercase tracking-wider">{v.category}</span><div className="h-px flex-1 bg-slate-100"></div></div><div className="text-slate-700 leading-relaxed text-lg prose prose-indigo"><Latex>{v.text}</Latex></div><button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />} {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>{showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest text-center">Pedagogical Solution</div><div className="prose prose-slate max-w-none text-center"><Latex>{v.solution}</Latex></div></div>}</div>))}</div> : <div className="space-y-6 text-center py-20">{[1,2,3].map(i => <div key={i} className="space-y-3 animate-pulse opacity-20"><div className="h-4 w-24 bg-slate-100 rounded mx-auto"></div><div className="h-20 w-full bg-slate-50 rounded-2xl"></div></div>)}<p className="text-[10px] font-black text-slate-200 uppercase tracking-widest mt-4">Awaiting AI Logic</p></div>}</div></div>
           </main>
