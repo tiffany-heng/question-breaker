@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Camera, Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, CheckCircle2, X, Scissors } from 'lucide-react';
 import { supabase, SESSION_CHANNEL_PREFIX } from '@/lib/supabase';
 import Latex from 'react-latex-next';
+import Cropper from 'react-easy-crop';
 import 'katex/dist/katex.min.css';
 
 // --- Types ---
-type SessionStatus = 'idle' | 'waiting' | 'uploading' | 'processing' | 'ready';
+type SessionStatus = 'idle' | 'waiting' | 'uploading' | 'cropping' | 'processing' | 'ready';
 
 interface QuestionData {
   imageUrl: string | null;
@@ -35,6 +36,12 @@ export default function QuestionBreaker() {
     variations: []
   });
 
+  // --- Cropping State ---
+  const [tempImage, setTempImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
   // --- Real-time Logic ---
 
   useEffect(() => {
@@ -45,11 +52,9 @@ export default function QuestionBreaker() {
 
   const subscribeToSession = (id: string, isHost: boolean) => {
     if (!supabase) return;
-
     const channel = supabase.channel(`${SESSION_CHANNEL_PREFIX}${id}`, {
       config: { broadcast: { self: true } }
     });
-
     channel
       .on('broadcast', { event: 'IMAGE_UPLOADED' }, ({ payload }: { payload: { imageUrl: string } }) => {
         setData(prev => ({ ...prev, imageUrl: payload.imageUrl }));
@@ -64,23 +69,16 @@ export default function QuestionBreaker() {
           if (!isHost) channel.send({ type: 'broadcast', event: 'USER_JOINED', payload: { device: 'mobile' } });
         }
       });
-
     channelRef.current = channel;
   };
 
-  const generateId = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const p1 = Array.from({ length: 3 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-    const p2 = Array.from({ length: 3 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-    return `${p1}-${p2}`;
-  };
-
   const startSession = () => {
-    const newId = generateId();
-    setSessionId(newId);
+    const newId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const formattedId = `${newId.slice(0,3)}-${newId.slice(3)}`;
+    setSessionId(formattedId);
     setViewMode('desktop');
     setStatus('waiting');
-    subscribeToSession(newId, true);
+    subscribeToSession(formattedId, true);
   };
 
   const joinSession = (id: string) => {
@@ -96,10 +94,37 @@ export default function QuestionBreaker() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !sessionId) return;
+  // --- Image Handling ---
+
+  const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setTempImage(reader.result as string);
+        setStatus('cropping');
+      });
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const handleConfirmCrop = async () => {
+    if (!tempImage || !croppedAreaPixels) return;
     setStatus('uploading');
+    try {
+      const croppedBlob = await getCroppedImg(tempImage, croppedAreaPixels);
+      const file = new File([croppedBlob], "cropped-question.jpg", { type: 'image/jpeg' });
+      await uploadToSupabase(file);
+    } catch (e) {
+      console.error(e);
+      setStatus('waiting');
+    }
+  };
+
+  const uploadToSupabase = async (file: File) => {
     try {
       const fileName = `${sessionId}/${Date.now()}-${file.name}`;
       const { error } = await supabase.storage.from('questions').upload(fileName, file);
@@ -107,6 +132,7 @@ export default function QuestionBreaker() {
       const { data: { publicUrl } } = supabase.storage.from('questions').getPublicUrl(fileName);
       channelRef.current.send({ type: 'broadcast', event: 'IMAGE_UPLOADED', payload: { imageUrl: publicUrl } });
       setStatus('processing');
+      setTempImage(null);
     } catch (err: any) {
       alert('Upload failed: ' + err.message);
       setStatus('waiting');
@@ -122,28 +148,17 @@ export default function QuestionBreaker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl: url })
       });
-      
-      setAiStep('Gemini: Logic Received');
       const result = await resp.json();
-      setDebugLog(JSON.stringify(result).slice(0, 200));
-      
       if (result.error) {
          setAiStep('Error: ' + result.error);
          if (result.raw) setDebugLog(result.raw);
          return;
       }
-
-      setAiStep('Gemini: Rendering Variations');
-      
-      // Update Laptop Locally
       setData(prev => ({ ...prev, extractedText: result.extractedText, variations: result.variations }));
       setStatus('ready');
-
-      // Broadcast to Phone
       channelRef.current.send({ type: 'broadcast', event: 'VARIATIONS_READY', payload: result });
     } catch (err: any) {
-      setAiStep('Gemini: Failed - ' + err.message);
-      // Let the error stay on screen for a moment
+      setAiStep('Handshake Failed');
       setTimeout(() => setStatus('waiting'), 3000);
     }
   };
@@ -174,17 +189,56 @@ export default function QuestionBreaker() {
   if (viewMode === 'mobile') {
     return (
       <div className="min-h-screen bg-white flex flex-col text-slate-900 font-sans">
-        <header className="p-4 border-b flex justify-between items-center bg-slate-50/50"><div className="font-bold text-indigo-600">QB Mobile</div><div className="px-3 py-1 bg-white border rounded-full text-xs font-mono font-bold text-slate-500">ID: {sessionId}</div></header>
-        <main className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 text-center">
+        <header className="p-4 border-b flex justify-between items-center bg-slate-50/50">
+          <div className="font-bold text-indigo-600">QB Mobile</div>
+          <div className="px-3 py-1 bg-white border rounded-full text-xs font-mono font-bold text-slate-500">ID: {sessionId}</div>
+        </header>
+
+        <main className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 text-center relative">
+          {status === 'cropping' && tempImage && (
+            <div className="fixed inset-0 z-50 bg-black flex flex-col">
+              <div className="flex-1 relative">
+                <Cropper
+                  image={tempImage}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={undefined}
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                />
+              </div>
+              <div className="p-6 bg-slate-900 flex justify-between items-center">
+                <button onClick={() => setStatus('waiting')} className="text-white flex items-center gap-2 font-bold"><X size={20} /> Cancel</button>
+                <div className="text-slate-400 text-xs font-bold uppercase tracking-widest">Crop to Question</div>
+                <button onClick={handleConfirmCrop} className="bg-indigo-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 font-black shadow-lg"><Scissors size={18} /> Use This</button>
+              </div>
+            </div>
+          )}
+
           {status === 'processing' || status === 'uploading' ? (
-            <div className="space-y-4"><Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto" /><p className="font-bold text-lg">{status === 'uploading' ? 'Uploading...' : 'AI Thinking...'}</p></div>
+            <div className="space-y-4">
+              <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto" />
+              <p className="font-bold text-lg">{status === 'uploading' ? 'Uploading...' : 'AI Thinking...'}</p>
+            </div>
           ) : status === 'ready' ? (
-            <div className="space-y-6"><div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 size={32} /></div><h2 className="text-2xl font-bold">Variations Ready!</h2><button onClick={() => setStatus('waiting')} className="p-4 bg-indigo-600 text-white rounded-2xl font-bold w-full shadow-lg">Upload Another</button></div>
+            <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-sm"><CheckCircle2 size={32} /></div>
+              <h2 className="text-2xl font-bold">Variations Ready!</h2>
+              <button onClick={() => setStatus('waiting')} className="p-4 bg-indigo-600 text-white rounded-2xl font-bold w-full shadow-lg">Upload Another</button>
+            </div>
           ) : (
             <>
-              <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600"><Camera size={40} /></div>
-              <div className="space-y-2"><h2 className="text-2xl font-bold">Snap a Question</h2><p className="text-slate-500 max-w-[250px] mx-auto text-sm">Take a clear photo of the problem.</p></div>
-              <label className="flex items-center justify-center w-full gap-3 p-5 bg-indigo-600 text-white rounded-2xl font-black text-lg active:scale-95 cursor-pointer shadow-lg"><Camera size={20} />Open Camera<input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileUpload} /></label>
+              <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 shadow-inner"><Camera size={40} /></div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold tracking-tight">Snap a Question</h2>
+                <p className="text-slate-500 max-w-[250px] mx-auto text-sm">Take a clear photo of the problem.</p>
+              </div>
+              <label className="flex items-center justify-center w-full gap-3 p-5 bg-indigo-600 text-white rounded-2xl font-black text-lg active:scale-95 cursor-pointer shadow-lg">
+                <Camera size={20} />
+                Open Camera
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={onSelectFile} />
+              </label>
             </>
           )}
         </main>
@@ -193,7 +247,7 @@ export default function QuestionBreaker() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans pb-10">
       <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0">
         <div className="flex items-center gap-3"><div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xs italic">QB</div><span className="font-bold text-lg tracking-tight">Question Breaker</span></div>
         <div className="flex items-center gap-4"><div className="px-4 py-1.5 bg-slate-100 rounded-full text-sm font-mono font-bold text-indigo-600 uppercase tracking-widest">{sessionId}</div><button onClick={() => window.location.reload()} className="text-xs font-semibold text-slate-400">End Session</button></div>
@@ -209,28 +263,10 @@ export default function QuestionBreaker() {
             </div>
           )}
           {status === 'processing' && (
-             <div className="absolute inset-0 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center z-20 p-10 space-y-6">
-                <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
-                <div className="text-center">
-                  <p className="font-black text-xl text-indigo-900 tracking-tight">Gemini is Thinking...</p>
-                  <p className="text-sm font-bold text-indigo-400 uppercase tracking-widest mt-1">{aiStep}</p>
-                </div>
-
-                {debugLog && (
-                  <div className="w-full max-w-md bg-slate-900 rounded-2xl p-6 shadow-2xl border border-white/20 overflow-hidden">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Raw AI Output (Debug)</span>
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                        <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      </div>
-                    </div>
-                    <div className="text-[11px] text-slate-300 font-mono leading-relaxed break-all whitespace-pre-wrap max-h-[200px] overflow-y-auto">
-                      {debugLog}
-                    </div>
-                  </div>
-                )}
+             <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4">
+                <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold">Gemini is analyzing...</p>
+                <p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-slate-100 px-3 py-1 rounded-full">{aiStep}</p>
+                {debugLog && <div className="text-[8px] text-slate-300 max-w-[200px] truncate">Log: {debugLog}</div>}
              </div>
           )}
         </div>
@@ -259,4 +295,40 @@ export default function QuestionBreaker() {
       </main>
     </div>
   );
+}
+
+// --- Image Processing Helpers ---
+
+async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<Blob> {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.addEventListener('load', () => resolve(img));
+    img.addEventListener('error', (error) => reject(error));
+    img.src = imageSrc;
+  });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) throw new Error("No 2d context");
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+    }, 'image/jpeg');
+  });
 }
