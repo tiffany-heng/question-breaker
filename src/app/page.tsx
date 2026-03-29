@@ -100,7 +100,12 @@ export default function QuestionBreaker() {
 
   const setupRealtime = (rId: string, isHost: boolean) => {
     const channel = supabase.channel(`room_${rId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions', filter: `room_id=eq.${rId}` }, (payload) => {
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'questions', 
+        filter: `room_id=eq.${rId}` 
+      }, (payload: any) => {
         const newData = payload.new as any;
         setData({
           id: newData.id,
