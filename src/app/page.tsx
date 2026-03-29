@@ -25,33 +25,20 @@ interface QuestionData {
 }
 
 export default function QuestionBreaker() {
-  // Persistence States
   const [roomId, setRoomId] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string>('');
   const [isInitializing, setIsInitializing] = useState(true);
-
-  // App States
   const [status, setStatus] = useState<SessionStatus>('idle');
   const [aiStep, setAiStep] = useState<string>('idle');
   const [debugLog, setDebugLog] = useState<string>('');
   const [expandedVariations, setExpandedVariations] = useState<Record<number, boolean>>({});
   const [showSolutions, setShowSolutions] = useState<Record<number, boolean>>({});
-  
-  const [data, setData] = useState<QuestionData>({ 
-    questionImageUrl: null, 
-    questionText: '',
-    solutionImageUrl: null, 
-    solutionText: '',
-    extractedText: '', 
-    variations: [] 
-  });
+  const [data, setData] = useState<QuestionData>({ questionImageUrl: null, questionText: '', solutionImageUrl: null, solutionText: '', extractedText: '', variations: [] });
 
-  // Workflow States (Now synced via DB)
   const [isQuestionTextMode, setIsQuestionTextMode] = useState(false);
   const [isSolutionTextMode, setIsSolutionTextMode] = useState(true);
   const [isSolutionEnabled, setIsSolutionEnabled] = useState(false);
 
-  // Media State
   const [pastedFile, setPastedFile] = useState<File | null>(null);
   const [activeUploadType, setActiveUploadType] = useState<ImageType>('question');
   const [imgSrc, setImgSrc] = useState('');
@@ -61,16 +48,13 @@ export default function QuestionBreaker() {
   const [rawFile, setRawFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- 1. BOOTSTRAP & PERSISTENCE ---
-
   useEffect(() => {
     const bootstrap = async () => {
       await supabase.auth.signInAnonymously();
       const savedRoomId = localStorage.getItem('qb_active_room_id');
       const savedCode = localStorage.getItem('qb_pairing_code');
       if (savedRoomId) {
-        setRoomId(savedRoomId);
-        setPairingCode(savedCode || '');
+        setRoomId(savedRoomId); setPairingCode(savedCode || '');
         await syncLatestData(savedRoomId);
         setupRealtime(savedRoomId);
       }
@@ -94,7 +78,6 @@ export default function QuestionBreaker() {
       setIsQuestionTextMode(!!qData.is_question_text_mode);
       setIsSolutionTextMode(!!qData.is_solution_text_mode);
       if (qData.solution_image_url || qData.solution_text) setIsSolutionEnabled(true);
-      
       if (qData.status === 'ready') setStatus('ready');
       else if (qData.status === 'processing') setStatus('processing');
       else setStatus('waiting');
@@ -116,11 +99,11 @@ export default function QuestionBreaker() {
           variations: newData.variations || []
         });
         
-        // SYNC UI MODES
         setIsQuestionTextMode(!!newData.is_question_text_mode);
         setIsSolutionTextMode(!!newData.is_solution_text_mode);
         if (newData.solution_image_url || newData.solution_text) setIsSolutionEnabled(true);
 
+        // SYNC STATUS WITHOUT TRIGGERING AI AGAIN
         if (newData.status === 'ready') setStatus('ready');
         else if (newData.status === 'processing') setStatus('processing');
         else setStatus('waiting');
@@ -128,8 +111,6 @@ export default function QuestionBreaker() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   };
-
-  // --- 2. ROOM ACTIONS ---
 
   const createRoom = async () => {
     try {
@@ -156,8 +137,6 @@ export default function QuestionBreaker() {
 
   const resetSession = () => { localStorage.clear(); window.location.reload(); };
 
-  // --- 3. DATABASE UPDATES ---
-
   const saveToDb = async (updates: Partial<QuestionData>, newStatus?: string) => {
     if (!roomId) return;
     const payload = {
@@ -174,20 +153,36 @@ export default function QuestionBreaker() {
     else { const { data: created } = await supabase.from('questions').insert([payload]).select().single(); if (created) setData(p => ({ ...p, id: created.id })); }
   };
 
-  // --- 4. CORE HANDLERS ---
-
   const handleProcessWithAI = async () => {
     if (!roomId) return;
-    setStatus('processing'); setAiStep('Connecting to Gemini 3.1...');
     
-    // Save current modes and data before AI starts
+    setStatus('processing');
+    setAiStep('Handshaking with Gemini...');
+    
+    // 1. Tell database we are starting (Syncs other devices to spinner)
     await saveToDb({}, 'processing');
 
     try {
-      const resp = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionImageUrl: data.questionImageUrl, questionText: data.questionText, solutionImageUrl: data.solutionImageUrl, solutionText: data.solutionText }) });
+      const resp = await fetch('/api/process', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          questionImageUrl: isQuestionTextMode ? null : data.questionImageUrl, 
+          questionText: isQuestionTextMode ? data.questionText : null,
+          solutionImageUrl: (isSolutionEnabled && !isSolutionTextMode) ? data.solutionImageUrl : null, 
+          solutionText: (isSolutionEnabled && isSolutionTextMode) ? data.solutionText : null 
+        }) 
+      });
       const result = await resp.json();
-      if (result.error) { setAiStep('Error: ' + result.error); if (result.raw) setDebugLog(result.raw); return; }
       
+      if (result.error) { 
+        setAiStep('Error: ' + result.error); 
+        if (result.raw) setDebugLog(result.raw); 
+        await saveToDb({}, 'waiting'); // Reset on error
+        return; 
+      }
+
+      // 2. Save variations to DB (Syncs all devices)
       await supabase.from('questions').update({ 
         extracted_text: result.extractedText, 
         variations: result.variations, 
@@ -195,7 +190,12 @@ export default function QuestionBreaker() {
         is_question_text_mode: isQuestionTextMode,
         is_solution_text_mode: isSolutionTextMode
       }).eq('id', data.id);
-    } catch (err: any) { setAiStep('Failed'); setTimeout(() => setStatus('waiting'), 3000); }
+
+    } catch (err: any) {
+      setAiStep('AI Connection Failed');
+      await saveToDb({}, 'waiting');
+      setTimeout(() => setStatus('waiting'), 3000);
+    }
   };
 
   const uploadToSupabase = async (file: File, type: ImageType) => {
@@ -253,7 +253,6 @@ export default function QuestionBreaker() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans pb-10">
-      {/* GLOBAL CROP OVERLAY */}
       {status === 'cropping' && imgSrc && (
         <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col">
           <div className="p-4 flex justify-between items-center text-white bg-slate-950"><button onClick={() => setStatus('waiting')}><X /></button><span className="font-bold text-xs uppercase">Crop {activeUploadType}</span><button onClick={handleConfirmCrop} className="bg-indigo-600 px-6 py-2 rounded-full font-black text-xs uppercase shadow-lg">Confirm</button></div>
@@ -278,10 +277,11 @@ export default function QuestionBreaker() {
             <div className="w-full md:w-1/2 border-r bg-slate-50/50 flex flex-col relative overflow-y-auto pb-40">
               <div className="p-8 space-y-10">
                 <div className="space-y-3"><div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> The Question</h4><div className="flex items-center gap-2"><button onClick={() => setIsQuestionTextMode(!isQuestionTextMode)} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">{isQuestionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>{(data.questionImageUrl || data.questionText) && <button onClick={() => { setData(p => ({ ...p, questionImageUrl: null, questionText: '' })); saveToDb({ questionImageUrl: null, questionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
-                  {isQuestionTextMode ? ( <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, questionText: v })); }} className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white mx-auto" /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Click or Paste Question Image</span></button> ) )}</div>
-                <div className="space-y-3"><div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> Solution Reference</h4><div className="flex items-center gap-2">{isSolutionEnabled && <button onClick={() => setIsSolutionTextMode(!isSolutionTextMode)} className="text-[10px] font-black uppercase text-indigo-400 hover:underline">{isSolutionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>}{isSolutionEnabled && <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
-                  {!isSolutionEnabled ? ( <button onClick={() => setIsSolutionEnabled(true)} className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 flex items-center justify-center gap-3 hover:bg-white hover:border-indigo-100 transition-all group"><PlusCircle size={20} className="group-hover:rotate-90 transition-transform" /><span className="text-[10px] font-black uppercase tracking-widest">Add Solution Context (Optional)</span></button> ) : ( isSolutionTextMode ? ( <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, solutionText: v })); }} className="w-full min-h-[150px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto" /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Click or Paste Solution Image</span></button> ) ) )}</div>
-                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap"><div className="font-bold uppercase mb-1">Diagnostic Info:</div>{debugLog}</div>}
+                  {isQuestionTextMode ? ( <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, questionText: v })); }} className="w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-2xl border border-white mx-auto" /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Question Image</span></button> ) )}</div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center"><h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> Solution Reference</h4><div className="flex items-center gap-2">{isSolutionEnabled && <button onClick={() => setIsSolutionTextMode(!isSolutionTextMode)} className="text-[10px] font-black uppercase text-indigo-400 hover:underline">{isSolutionTextMode ? 'Switch to Image' : 'Switch to Text'}</button>}{isSolutionEnabled && <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-slate-300 hover:text-red-500"><Trash2 size={14}/></button>}</div></div>
+                  {!isSolutionEnabled ? ( <button onClick={() => setIsSolutionEnabled(true)} className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 flex items-center justify-center gap-3 hover:bg-white hover:border-indigo-100 transition-all group"><PlusCircle size={20} className="group-hover:rotate-90 transition-transform" /><span className="text-[10px] font-black uppercase tracking-widest">Add Solution Context (Optional)</span></button> ) : ( isSolutionTextMode ? ( <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => { const v = e.target.value; setData(p => ({ ...p, solutionText: v })); }} className="w-full min-h-[150px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> ) : ( data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto" /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white hover:border-indigo-200 transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest">Click or Paste Solution Image</span></button> ) ) )}</div>
+                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap text-left"><div className="font-bold uppercase mb-1">Diagnostic Info:</div>{debugLog}</div>}
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center">
                 {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && ( <button onClick={handleProcessWithAI} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all"><BrainCircuit className="text-indigo-400 group-hover:rotate-12 transition-transform" />Submit to Gemini 3.1</button> )}
@@ -314,8 +314,7 @@ async function getCroppedImg(image: HTMLImageElement, pixelCrop: any): Promise<B
   const canvas = document.createElement('canvas');
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
-  canvas.width = pixelCrop.width * scaleX;
-  canvas.height = pixelCrop.height * scaleY;
+  canvas.width = pixelCrop.width * scaleX; canvas.height = pixelCrop.height * scaleY;
   const ctx = canvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(image, pixelCrop.x * scaleX, pixelCrop.y * scaleY, pixelCrop.width * scaleX, pixelCrop.height * scaleY, 0, 0, canvas.width, canvas.height);
