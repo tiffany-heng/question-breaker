@@ -67,7 +67,12 @@ export async function POST(req: NextRequest) {
         - Match difficulty to ${level} standards.
         - Ensure total clarity and precision in phrasing.
         - CRITICAL: Questions MUST explicitly state the required answer format where applicable (e.g., "Give your answer to 2 decimal places," "Include units in your response," or "Select exactly three options").
-        - Wrap ALL mathematical expressions, formulas, technical notations, and the 'answer' field itself in $ delimiters (e.g., $E=mc^2$ or $\frac{a}{b}$). This is CRITICAL for rendering.
+        - SAFE LATEX: Wrap ALL mathematical expressions, formulas, and technical notations in $ delimiters (e.g., $E=mc^2$).
+          - Use ONLY standard LaTeX commands.
+          - Avoid complex environments like \begin{equation} or \begin{align}.
+          - Use \frac{a}{b} for fractions, \sqrt{x} for roots, and ^ for exponents.
+          - Ensure all opening $ have a corresponding closing $.
+          - This is CRITICAL for rendering.
         
         OUTPUT FORMAT (STRICT JSON):
         {
