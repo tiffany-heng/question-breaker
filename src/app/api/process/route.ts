@@ -47,18 +47,13 @@ export async function POST(req: NextRequest) {
         ${existingText}
 
         TASK:
-        1. CRITICAL: Analyze the 'ALREADY GENERATED QUESTIONS' list to determine which sub-topics have already been addressed.
-        2. CROSS-REFERENCE these with the 'Source Material' to identify UNTESTED or UNDER-TESTED concepts.
+        1. CONCEPT GAP ANALYSIS: Analyze the 'ALREADY GENERATED QUESTIONS' list against the 'Source Material'.
+        2. PRIORITIZATION:
+           - STAGE 1 (Coverage): If there are UNTESTED concepts, you MUST generate questions for these uncovered topics first.
+           - STAGE 2 (Synthesis): If ALL major concepts are already covered (allConceptsTested: true), generate "Hybrid Questions" that combine 2 or more concepts in complex, new ways.
         3. Create a COMPREHENSIVE CONCEPT TREE representing the main themes of the entire text in a directory-style format.
-        4. GENERATE a diverse mix of 3-5 BRAND NEW high-quality questions that target DIFFERENT concepts or significantly deeper applications than the existing ones.
-        5. Priority MUST be given to breadth of coverage across the entire source material. If all major concepts are already covered, pivot to complex synthesis questions that combine multiple concepts.
-        6. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding:
-           - MCQ: Use for precise identification, terminology, or single-step applications.
-           - MRQ: Use for concepts with multiple valid components, dependencies, or "select all that apply" scenarios.
-           - Short Answer: Use for specific calculations, formula applications, or brief technical explanations.
-           - Open-ended: Use for synthesis of multiple concepts, deep reasoning, evaluation, or explaining complex mechanisms.
-        
-        The final set MUST be a balanced distribution that reflects the varying depth and technicality of the source material.
+        4. GENERATE a diverse mix of 3-5 BRAND NEW high-quality questions.
+        5. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding.
         
         REQUIREMENTS:
         - DIRECT RELEVANCE: Every question MUST be directly derived from the provided 'Source Material' and strictly adhere to the '${subject}' syllabus at the '${level}' level.
@@ -67,12 +62,11 @@ export async function POST(req: NextRequest) {
         - Match difficulty to ${level} standards.
         - Ensure total clarity and precision in phrasing.
         - CRITICAL: Questions MUST explicitly state the required answer format where applicable (e.g., "Give your answer to 2 decimal places," "Include units in your response," or "Select exactly three options").
+        - OPTION ANALYSIS (MCQ/MRQ): For every MCQ/MRQ, the 'solution' MUST include a dedicated analysis for EVERY option. Explain why the correct ones are correct and why every incorrect one is wrong. Add a newline character after each option's explanation for clarity.
         - SAFE LATEX: Wrap ALL mathematical expressions, formulas, and technical notations in $ delimiters (e.g., $E=mc^2$).
-          - Use ONLY standard LaTeX commands.
-          - Avoid complex environments like \begin{equation} or \begin{align}.
+          - Use ONLY standard LaTeX commands. Avoid complex environments.
           - Use \frac{a}{b} for fractions, \sqrt{x} for roots, and ^ for exponents.
           - Ensure all opening $ have a corresponding closing $.
-          - This is CRITICAL for rendering.
         
         OUTPUT FORMAT (STRICT JSON):
         {
