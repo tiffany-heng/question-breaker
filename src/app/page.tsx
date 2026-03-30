@@ -69,7 +69,6 @@ export default function QuestionBreaker() {
   const [extractLevel, setExtractLevel] = useState('Secondary School');
   const [extractedQuestions, setExtractedQuestions] = useState<ExtractedQuestion[]>([]);
   const [extractConceptTree, setExtractConceptTree] = useState<string[]>([]);
-  const [extractSelections, setExtractSelections] = useState<Record<number, number[]>>({});
   const [isExtracting, setIsExtracting] = useState(false);
   const [showExtractedSolutions, setShowExtractedSolutions] = useState<Record<number, boolean>>({});
 
@@ -274,7 +273,6 @@ export default function QuestionBreaker() {
     setIsExtracting(true);
     setExtractedQuestions([]);
     setExtractConceptTree([]);
-    setExtractSelections({});
     setShowExtractedSolutions({});
 
     try {
@@ -300,20 +298,6 @@ export default function QuestionBreaker() {
     } finally {
       setIsExtracting(false);
     }
-  };
-
-  const toggleOption = (qIdx: number, oIdx: number, type: string) => {
-    setExtractSelections(prev => {
-      const current = prev[qIdx] || [];
-      if (type === 'mcq') {
-        return { ...prev, [qIdx]: [oIdx] };
-      } else {
-        const next = current.includes(oIdx) 
-          ? current.filter(i => i !== oIdx)
-          : [...current, oIdx];
-        return { ...prev, [qIdx]: next };
-      }
-    });
   };
 
   // --- 3. DATABASE UPDATES ---
@@ -690,34 +674,8 @@ export default function QuestionBreaker() {
                         <div className="flex items-center gap-2"><span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-lg tracking-wider">{q.type}</span></div>
                         <div className="text-lg font-medium leading-relaxed prose prose-indigo"><Latex>{q.question}</Latex></div>
                         {q.options && q.options.length > 0 && (
-                          <div className="grid grid-cols-1 gap-3 py-2">
-                            {q.options.map((opt, oIdx) => {
-                              const isSelected = extractSelections[idx]?.includes(oIdx);
-                              const showResult = showExtractedSolutions[idx];
-                              
-                              return (
-                                <div 
-                                  key={oIdx} 
-                                  onClick={() => !showResult && toggleOption(idx, oIdx, q.type)}
-                                  className={`flex items-start gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group ${
-                                    isSelected 
-                                      ? 'border-indigo-600 bg-indigo-50/50' 
-                                      : 'border-slate-50 hover:border-indigo-100 hover:bg-slate-50'
-                                  } ${showResult ? 'cursor-default' : ''}`}
-                                >
-                                  <div className={`mt-1 shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                                    isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-200 group-hover:border-indigo-300'
-                                  }`}>
-                                    {isSelected && <div className="w-2 h-2 bg-white rounded-sm" />}
-                                  </div>
-                                  <div className={`text-sm font-medium transition-colors ${
-                                    showResult && isSelected ? 'text-indigo-600 font-bold' : 'text-slate-600'
-                                  }`}>
-                                    <Latex>{opt}</Latex>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                          <div className="grid grid-cols-1 gap-2 pl-4 border-l-2 border-indigo-50 py-2">
+                            {q.options.map((opt, oIdx) => ( <div key={oIdx} className="text-sm text-slate-600 font-medium"><Latex>{opt}</Latex></div> ))}
                           </div>
                         )}
                         <div className="pt-4 border-t border-slate-50">
