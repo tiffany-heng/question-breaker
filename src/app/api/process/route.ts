@@ -20,12 +20,74 @@ async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promis
 export async function POST(req: NextRequest) {
   console.log("AI Pipeline: Starting request...");
   try {
-    const { questionImageUrl, questionText, solutionImageUrl, solutionText } = await req.json();
+    const body = await req.json();
+    const { mode, questionImageUrl, questionText, solutionImageUrl, solutionText, extractContent, subject, level } = body;
+    
     if (!GEMINI_API_KEY) {
       console.error("AI Pipeline: Missing GEMINI_API_KEY");
       return NextResponse.json({ error: 'Key missing' });
     }
 
+    if (mode === 'extract') {
+      console.log(`AI Pipeline: Starting Extraction for ${subject} at ${level} level...`);
+      const extractPrompt = `
+        You are an Expert Educator in ${subject || 'General Education'}.
+        
+        INPUT TEXT: "${extractContent}"
+        TARGET LEVEL: "${level || 'General'}"
+        
+        TASK:
+        Analyze the input text and identify the core concepts relevant to the subject syllabus for the ${level} level.
+        
+        GENERATE a mix of:
+        - Multiple-choice questions (MCQ)
+        - Multiple response questions (MRQ)
+        - Short answer questions (Short)
+        - Open-ended questions (Open)
+        
+        REQUIREMENTS:
+        - Questions must test application, reasoning, or calculation.
+        - Avoid simple definition-based questions.
+        - Match difficulty to ${level} standards.
+        - Ensure clarity and precision.
+        - Use LaTeX for all mathematical expressions.
+        
+        OUTPUT FORMAT (STRICT JSON):
+        {
+          "questions": [
+            {
+              "type": "mcq | mrq | short | open",
+              "question": "...",
+              "options": ["i. ...", "ii. ...", "iii. ...", "iv. ..."], // ONLY for mcq/mrq
+              "answer": "...",
+              "solution": "..."
+            }
+          ]
+        }
+      `;
+
+      const proResp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${REASONING_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          contents: [{ role: "user", parts: [{ text: extractPrompt }] }],
+          generationConfig: { response_mime_type: "application/json" }
+        })
+      });
+
+      const proData = await proResp.json();
+      const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      try {
+        const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const result = JSON.parse(cleanJson);
+        return NextResponse.json(result);
+      } catch (e) {
+        return NextResponse.json({ error: "Extraction JSON Error", raw: rawText });
+      }
+    }
+
+    // --- EXISTING BREAKER LOGIC ---
     let finalQuestionText = questionText || '';
     let finalSolutionText = solutionText || '';
 

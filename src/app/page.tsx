@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, X, BrainCircuit, Trash2, Upload, PlusCircle, ChevronDown, ChevronUp, LogOut, History, Plus, FileText, ImageIcon } from 'lucide-react';
+import { Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, X, BrainCircuit, Trash2, Upload, PlusCircle, ChevronDown, ChevronUp, LogOut, History, Plus, FileText, ImageIcon, Sparkles, ChevronLeft, GraduationCap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Latex from 'react-latex-next';
 import ReactCrop, { type Crop, PixelCrop } from 'react-image-crop';
@@ -11,6 +11,15 @@ import 'katex/dist/katex.min.css';
 // --- Types ---
 type SessionStatus = 'idle' | 'waiting' | 'uploading' | 'cropping' | 'processing' | 'ready';
 type ImageType = 'question' | 'solution';
+type AppMode = 'breaker' | 'extractor';
+
+interface ExtractedQuestion {
+  type: string;
+  question: string;
+  options?: string[];
+  answer: string;
+  solution: string;
+}
 
 interface QuestionData {
   id?: string;
@@ -27,6 +36,10 @@ interface QuestionData {
 }
 
 export default function QuestionBreaker() {
+  // Navigation & Mode
+  const [activeMode, setActiveMode] = useState<AppMode>('breaker');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   // Persistence States
   const [roomId, setRoomId] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string>('');
@@ -49,6 +62,14 @@ export default function QuestionBreaker() {
     extractedText: '', 
     variations: [] 
   });
+
+  // Extractor States
+  const [extractContent, setExtractContent] = useState('');
+  const [extractSubject, setExtractSubject] = useState('');
+  const [extractLevel, setExtractLevel] = useState('Secondary School');
+  const [extractedQuestions, setExtractedQuestions] = useState<ExtractedQuestion[]>([]);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [showExtractedSolutions, setShowExtractedSolutions] = useState<Record<number, boolean>>({});
 
   // Workflow States
   const [isQuestionTextMode, setIsQuestionTextMode] = useState(false);
@@ -246,6 +267,36 @@ export default function QuestionBreaker() {
     setShowHistory(false);
   };
 
+  const handleExtract = async () => {
+    if (!extractContent.trim()) return;
+    setIsExtracting(true);
+    setExtractedQuestions([]);
+    setShowExtractedSolutions({});
+
+    try {
+      const resp = await fetch('/api/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'extract',
+          extractContent,
+          subject: extractSubject,
+          level: extractLevel
+        })
+      });
+      const result = await resp.json();
+      if (result.questions) {
+        setExtractedQuestions(result.questions);
+      } else if (result.error) {
+        alert("Extraction Error: " + result.error);
+      }
+    } catch (err: any) {
+      alert("Network Error: " + err.message);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   // --- 3. DATABASE UPDATES ---
 
   const saveToDb = async (updates: Partial<QuestionData>, newStatus?: string) => {
@@ -380,149 +431,260 @@ export default function QuestionBreaker() {
   if (isInitializing) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">
-      {/* GLOBAL CROP OVERLAY */}
-      {status === 'cropping' && imgSrc && (
-        <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col">
-          <div className="p-4 flex justify-between items-center text-white bg-slate-950"><button onClick={() => setStatus('waiting')}><X /></button><span className="font-bold text-xs uppercase">Crop {activeUploadType}</span><button onClick={handleConfirmCrop} className="bg-indigo-600 px-6 py-2 rounded-full font-black text-xs uppercase shadow-lg">Confirm</button></div>
-          <div className="flex-1 overflow-auto bg-black flex items-center justify-center p-4"><ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)} className="max-h-full"><img ref={imgRef} src={imgSrc} alt="Crop" className="max-w-full max-h-[70vh] object-contain" /></ReactCrop></div>
-          <div className="p-4 bg-slate-950 text-center"><button onClick={() => { if (rawFile) uploadToSupabase(rawFile, activeUploadType); }} className="w-full max-w-xs p-3 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-white/10">Skip Crop & Upload</button></div>
+    <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans overflow-hidden">
+      {/* RETRACTABLE SIDEBAR */}
+      <aside className={`bg-slate-900 text-white transition-all duration-300 flex flex-col z-50 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
+        <div className="p-6 flex items-center justify-between">
+          {sidebarOpen && <h1 className="font-black italic text-xl text-indigo-400">QB.</h1>}
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-800 rounded-lg transition-colors mx-auto">
+            {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+          </button>
         </div>
-      )}
 
-      {/* SESSION HISTORY SIDEBAR */}
-      {showHistory && (
-        <div className="fixed inset-0 z-[80] bg-slate-900/60 backdrop-blur-sm flex justify-end">
-          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b flex justify-between items-center">
-              <h2 className="font-black uppercase tracking-widest text-sm flex items-center gap-2"><History size={18} className="text-indigo-600"/> Session History</h2>
-              <button onClick={() => setShowHistory(false)}><X/></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              <button onClick={startNewQuestion} className="w-full p-4 border-2 border-dashed border-indigo-100 rounded-2xl text-indigo-600 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all mb-4">
-                <Plus size={20}/> New Question
-              </button>
-              {history.map((item, idx) => (
-                <button key={idx} onClick={() => loadFromHistory(item)} className={`w-full text-left p-4 rounded-2xl border-2 transition-all group ${data.id === item.id ? 'border-indigo-600 bg-indigo-50' : 'border-slate-50 bg-slate-50/50 hover:border-slate-100'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-black uppercase text-slate-400">{new Date(item.created_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    {item.status === 'ready' && <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>}
-                  </div>
-                  <p className="text-xs font-bold text-slate-600 line-clamp-2">{item.questionText || (item.questionImageUrl ? '[Question Image]' : 'Empty Question')}</p>
+        <nav className="flex-1 px-3 space-y-2 mt-4">
+          <button 
+            onClick={() => setActiveMode('breaker')}
+            className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${activeMode === 'breaker' ? 'bg-indigo-600 shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400'}`}
+          >
+            <BrainCircuit size={24} className="shrink-0" />
+            {sidebarOpen && <span className="font-bold text-sm uppercase tracking-widest text-left">Breaker</span>}
+          </button>
+
+          <button 
+            onClick={() => setActiveMode('extractor')}
+            className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${activeMode === 'extractor' ? 'bg-indigo-600 shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400'}`}
+          >
+            <Sparkles size={24} className="shrink-0" />
+            {sidebarOpen && <span className="font-bold text-sm uppercase tracking-widest text-left">Extractor</span>}
+          </button>
+        </nav>
+
+        <div className="p-6 border-t border-slate-800">
+          <button onClick={resetSession} className="flex items-center gap-4 text-slate-500 hover:text-red-400 transition-colors w-full">
+            <LogOut size={20} className="shrink-0" />
+            {sidebarOpen && <span className="text-xs font-bold uppercase tracking-widest">Logout</span>}
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        {/* GLOBAL CROP OVERLAY */}
+        {status === 'cropping' && imgSrc && (
+          <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col">
+            <div className="p-4 flex justify-between items-center text-white bg-slate-950"><button onClick={() => setStatus('waiting')}><X /></button><span className="font-bold text-xs uppercase">Crop {activeUploadType}</span><button onClick={handleConfirmCrop} className="bg-indigo-600 px-6 py-2 rounded-full font-black text-xs uppercase shadow-lg">Confirm</button></div>
+            <div className="flex-1 overflow-auto bg-black flex items-center justify-center p-4"><ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)} className="max-h-full"><img ref={imgRef} src={imgSrc} alt="Crop" className="max-w-full max-h-[70vh] object-contain" /></ReactCrop></div>
+            <div className="p-4 bg-slate-950 text-center"><button onClick={() => { if (rawFile) uploadToSupabase(rawFile, activeUploadType); }} className="w-full max-w-xs p-3 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-xl border border-white/10">Skip Crop & Upload</button></div>
+          </div>
+        )}
+
+        {/* SESSION HISTORY SIDEBAR */}
+        {showHistory && (
+          <div className="fixed inset-0 z-[80] bg-slate-900/60 backdrop-blur-sm flex justify-end">
+            <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+              <div className="p-6 border-b flex justify-between items-center">
+                <h2 className="font-black uppercase tracking-widest text-sm flex items-center gap-2"><History size={18} className="text-indigo-600"/> Session History</h2>
+                <button onClick={() => setShowHistory(false)}><X/></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <button onClick={startNewQuestion} className="w-full p-4 border-2 border-dashed border-indigo-100 rounded-2xl text-indigo-600 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-all mb-4">
+                  <Plus size={20}/> New Question
                 </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!roomId ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
-            <h1 className="text-4xl font-black text-indigo-600 italic">QB.</h1>
-            <button onClick={createRoom} className="group flex items-center justify-between w-full p-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all shadow-lg shadow-indigo-200">
-              <div className="flex items-center gap-4 text-left"><Columns2 size={24} /><div className="font-bold text-lg">Start New Session</div></div>
-              <ChevronRight className="opacity-50" />
-            </button>
-            <div className="relative py-4 text-xs text-slate-400 uppercase tracking-widest flex items-center justify-center gap-4"><div className="h-px flex-1 bg-slate-100"></div>or join existing<div className="h-px flex-1 bg-slate-100"></div></div>
-            <div className="space-y-3">
-              <input type="text" placeholder="Enter 6-digit Code" className="w-full p-4 rounded-xl border-2 border-slate-100 text-center font-mono text-xl uppercase tracking-widest focus:border-indigo-500 outline-none" onChange={(e) => setPairingCode(e.target.value.toUpperCase())} value={pairingCode} />
-              <button onClick={() => joinRoom(pairingCode)} className="w-full p-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 active:scale-95 transition-transform">Join Session</button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col relative">
-          <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0 shadow-sm">
-            <div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl">QB</div>
-            <div className="flex items-center gap-4">
-              <button onClick={() => setShowHistory(true)} className="flex items-center gap-2 px-4 py-1.5 bg-slate-100 rounded-full text-xs font-black text-slate-600 uppercase hover:bg-slate-200 transition-all">
-                <History size={16}/> History
-              </button>
-              <div className="px-4 py-1.5 bg-indigo-50 rounded-full text-sm font-mono font-bold text-indigo-600">CODE: {pairingCode}</div>
-              <button onClick={resetSession} className="text-xs font-semibold text-slate-400 hover:text-red-500"><LogOut size={14}/></button>
-            </div>
-          </header>
-          
-          <main className="flex-1 flex flex-col md:flex-row overflow-hidden text-left text-balance">
-            <div className="w-full md:w-1/2 border-r bg-slate-50/50 flex flex-col relative overflow-y-auto pb-40">
-              <div className="p-8 space-y-10">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">The Question</h4>
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => setIsQuestionTextMode(false)} className={`p-2 rounded-lg transition-all ${!isQuestionTextMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><ImageIcon size={16}/></button>
-                      <button onClick={() => setIsQuestionTextMode(true)} className={`p-2 rounded-lg transition-all ${isQuestionTextMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><FileText size={16}/></button>
+                {history.map((item, idx) => (
+                  <button key={idx} onClick={() => loadFromHistory(item)} className={`w-full text-left p-4 rounded-2xl border-2 transition-all group ${data.id === item.id ? 'border-indigo-600 bg-indigo-50' : 'border-slate-50 bg-slate-50/50 hover:border-slate-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-black uppercase text-slate-400">{new Date(item.created_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {item.status === 'ready' && <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>}
                     </div>
-                  </div>
-                  {isQuestionTextMode ? ( 
-                    <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))} onBlur={(e) => saveToDb({ questionText: e.target.value })} className="question-input w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> 
-                  ) : ( 
-                    data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-xl border border-white mx-auto cursor-pointer" onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Upload Question Image</span></button> ) 
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2">Solution Reference</h4>
-                    <div className="flex items-center gap-2">
-                       {isSolutionEnabled ? (
-                         <div className="flex items-center gap-3">
-                            <button onClick={() => setIsSolutionTextMode(false)} className={`p-2 rounded-lg transition-all ${!isSolutionTextMode ? 'bg-indigo-400 text-white' : 'text-indigo-200'}`}><ImageIcon size={16}/></button>
-                            <button onClick={() => setIsSolutionTextMode(true)} className={`p-2 rounded-lg transition-all ${isSolutionTextMode ? 'bg-indigo-400 text-white' : 'text-indigo-200'}`}><FileText size={16}/></button>
-                            <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-slate-300 hover:text-red-500 ml-2"><Trash2 size={16}/></button>
-                         </div>
-                       ) : (
-                        <button onClick={() => setIsSolutionEnabled(true)} className="text-[10px] font-black uppercase text-indigo-400 flex items-center gap-1"><PlusCircle size={14}/> Add Context</button>
-                       )}
-                    </div>
-                  </div>
-                  {isSolutionEnabled && (
-                    isSolutionTextMode ? ( 
-                      <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => setData(p => ({ ...p, solutionText: e.target.value }))} onBlur={(e) => saveToDb({ solutionText: e.target.value })} className="solution-input w-full min-h-[120px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> 
-                    ) : ( 
-                      data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto cursor-pointer" onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Upload Solution Image</span></button> ) 
-                    )
-                  )}
-                </div>
-                {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap"><div className="font-bold uppercase mb-1">API Diagnostic:</div>{debugLog}</div>}
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center">
-                {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && ( 
-                   <button onClick={handleProcessWithAI} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all shadow-indigo-100">
-                     <BrainCircuit className="text-indigo-400 group-hover:rotate-12 transition-transform" />Submit to Gemini 3.1
-                   </button> 
-                )}
-                {status === 'ready' && (
-                  <button onClick={startNewQuestion} className="bg-white border-2 border-indigo-100 text-indigo-600 px-10 py-4 rounded-full font-black flex items-center gap-2 hover:bg-indigo-50 transition-all shadow-lg">
-                    <Plus size={20}/> New Question
+                    <p className="text-xs font-bold text-slate-600 line-clamp-2">{item.questionText || (item.questionImageUrl ? '[Question Image]' : 'Empty Question')}</p>
                   </button>
-                )}
+                ))}
               </div>
-              {status === 'processing' && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4 text-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold text-indigo-950 uppercase tracking-widest text-xs">AI Logic Engine Active</p><p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-white px-3 py-1 rounded-full shadow-sm">{aiStep}</p></div>}
             </div>
-            
-            <div className="w-full md:w-1/2 bg-white flex flex-col overflow-y-auto">
-              <div className="p-4 border-b sticky top-0 bg-white/90 backdrop-blur z-10 flex justify-between items-center px-8">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Variations</h3>
-                <div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter">Gemini 3.1 Pro</div>
+          </div>
+        )}
+
+        {activeMode === 'breaker' ? (
+          !roomId ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+              <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
+                <h1 className="text-4xl font-black text-indigo-600 italic">QB.</h1>
+                <button onClick={createRoom} className="group flex items-center justify-between w-full p-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all shadow-lg shadow-indigo-200">
+                  <div className="flex items-center gap-4 text-left"><Columns2 size={24} /><div className="font-bold text-lg">Start New Session</div></div>
+                  <ChevronRight className="opacity-50" />
+                </button>
+                <div className="relative py-4 text-xs text-slate-400 uppercase tracking-widest flex items-center justify-center gap-4"><div className="h-px flex-1 bg-slate-100"></div>or join existing<div className="h-px flex-1 bg-slate-100"></div></div>
+                <div className="space-y-3">
+                  <input type="text" placeholder="Enter 6-digit Code" className="w-full p-4 rounded-xl border-2 border-slate-100 text-center font-mono text-xl uppercase tracking-widest focus:border-indigo-500 outline-none" onChange={(e) => setPairingCode(e.target.value.toUpperCase())} value={pairingCode} />
+                  <button onClick={() => joinRoom(pairingCode)} className="w-full p-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 active:scale-95 transition-transform">Join Session</button>
+                </div>
               </div>
-              <div className="p-8 space-y-4 text-left">
-                {status === 'ready' ? (
-                  data.variations.map((v, i) => (
-                    <div key={i} className="border-2 border-slate-50 rounded-3xl overflow-hidden transition-all duration-300 hover:border-indigo-100">
-                      <button onClick={() => setExpandedVariations(prev => ({ ...prev, [i]: !prev[i] }))} className={`w-full p-6 flex justify-between items-center transition-colors ${expandedVariations[i] ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}><div className="flex items-center gap-3"><span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${expandedVariations[i] ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'}`}>{v.category}</span><span className="font-bold text-sm tracking-tight">Expand Variation</span></div>{expandedVariations[i] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>
-                      {expandedVariations[i] && ( <div className="p-8 space-y-6 animate-in slide-in-from-top-2 duration-300"><div className="text-slate-700 leading-relaxed text-lg prose prose-indigo whitespace-pre-wrap"><Latex>{v.text}</Latex></div><button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all shadow-sm">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />} {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>{showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest text-center">Pedagogical Solution</div><div className="prose prose-slate max-w-none whitespace-pre-wrap"><Latex>{v.solution}</Latex></div></div>}</div> )}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col relative h-full">
+              <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0 shadow-sm">
+                <div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl">Question Breaker</div>
+                <div className="flex items-center gap-4">
+                  <button onClick={() => setShowHistory(true)} className="flex items-center gap-2 px-4 py-1.5 bg-slate-100 rounded-full text-xs font-black text-slate-600 uppercase hover:bg-slate-200 transition-all">
+                    <History size={16}/> History
+                  </button>
+                  <div className="px-4 py-1.5 bg-indigo-50 rounded-full text-sm font-mono font-bold text-indigo-600">CODE: {pairingCode}</div>
+                </div>
+              </header>
+              
+              <main className="flex-1 flex flex-col md:flex-row overflow-hidden text-left text-balance">
+                <div className="w-full md:w-1/2 border-r bg-slate-50/50 flex flex-col relative overflow-y-auto pb-40">
+                  <div className="p-8 space-y-10">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">The Question</h4>
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => setIsQuestionTextMode(false)} className={`p-2 rounded-lg transition-all ${!isQuestionTextMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><ImageIcon size={16}/></button>
+                          <button onClick={() => setIsQuestionTextMode(true)} className={`p-2 rounded-lg transition-all ${isQuestionTextMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><FileText size={16}/></button>
+                        </div>
+                      </div>
+                      {isQuestionTextMode ? ( 
+                        <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))} onBlur={(e) => saveToDb({ questionText: e.target.value })} className="question-input w-full min-h-[150px] bg-white rounded-2xl p-5 text-lg border-2 border-indigo-100 focus:border-indigo-500 outline-none transition-all shadow-sm whitespace-pre-wrap" /> 
+                      ) : ( 
+                        data.questionImageUrl ? <img src={data.questionImageUrl} alt="Question" className="w-full rounded-2xl shadow-xl border border-white mx-auto cursor-pointer" onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} /> : ( <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-white/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Upload Question Image</span></button> ) 
+                      )}
                     </div>
-                  ))
-                ) : ( <div className="space-y-6 text-center py-20">{[1,2,3].map(i => <div key={i} className="space-y-3 animate-pulse opacity-20"><div className="h-4 w-24 bg-slate-100 rounded mx-auto"></div><div className="h-20 w-full bg-slate-50 rounded-2xl"></div></div>)}<p className="text-[10px] font-black text-slate-200 uppercase tracking-widest mt-4">Awaiting AI Logic</p></div> )}
-              </div>
+
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2">Solution Reference</h4>
+                        <div className="flex items-center gap-2">
+                           {isSolutionEnabled ? (
+                             <div className="flex items-center gap-3">
+                                <button onClick={() => setIsSolutionTextMode(false)} className={`p-2 rounded-lg transition-all ${!isSolutionTextMode ? 'bg-indigo-400 text-white' : 'text-indigo-200'}`}><ImageIcon size={16}/></button>
+                                <button onClick={() => setIsSolutionTextMode(true)} className={`p-2 rounded-lg transition-all ${isSolutionTextMode ? 'bg-indigo-400 text-white' : 'text-indigo-200'}`}><FileText size={16}/></button>
+                                <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-slate-300 hover:text-red-500 ml-2"><Trash2 size={16}/></button>
+                             </div>
+                           ) : (
+                            <button onClick={() => setIsSolutionEnabled(true)} className="text-[10px] font-black uppercase text-indigo-400 flex items-center gap-1"><PlusCircle size={14}/> Add Context</button>
+                           )}
+                        </div>
+                      </div>
+                      {isSolutionEnabled && (
+                        isSolutionTextMode ? ( 
+                          <textarea placeholder="Paste solution steps..." value={data.solutionText} onChange={(e) => setData(p => ({ ...p, solutionText: e.target.value }))} onBlur={(e) => saveToDb({ solutionText: e.target.value })} className="solution-input w-full min-h-[120px] bg-indigo-50/30 rounded-2xl p-5 text-sm border-2 border-indigo-50 focus:border-indigo-400 outline-none transition-all shadow-sm whitespace-pre-wrap" /> 
+                        ) : ( 
+                          data.solutionImageUrl ? <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-2xl shadow-lg border border-white opacity-80 mx-auto cursor-pointer" onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} /> : ( <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-indigo-50/20 rounded-2xl border-2 border-dashed border-indigo-100 flex flex-col items-center justify-center text-indigo-300 space-y-2 hover:bg-white transition-all group"><Upload size={32} className="opacity-20 group-hover:scale-110 transition-transform" /><span className="text-xs font-bold uppercase tracking-widest text-center px-10">Upload Solution Image</span></button> ) 
+                        )
+                      )}
+                    </div>
+                    {debugLog && <div className="p-4 bg-red-50 rounded-2xl border border-red-100 text-[10px] font-mono text-red-600 overflow-auto max-h-40 whitespace-pre-wrap"><div className="font-bold uppercase mb-1">API Diagnostic:</div>{debugLog}</div>}
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent flex flex-col items-center">
+                    {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && ( 
+                       <button onClick={handleProcessWithAI} className="group bg-slate-900 hover:bg-black text-white px-12 py-5 rounded-full font-black text-xl shadow-2xl flex items-center gap-4 active:scale-95 transition-all shadow-indigo-100">
+                         <BrainCircuit className="text-indigo-400 group-hover:rotate-12 transition-transform" />Submit to Gemini 3.1
+                       </button> 
+                    )}
+                    {status === 'ready' && (
+                      <button onClick={startNewQuestion} className="bg-white border-2 border-indigo-100 text-indigo-600 px-10 py-4 rounded-full font-black flex items-center gap-2 hover:bg-indigo-50 transition-all shadow-lg">
+                        <Plus size={20}/> New Question
+                      </button>
+                    )}
+                  </div>
+                  {status === 'processing' && <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 space-y-4 text-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /><p className="font-bold text-indigo-950 uppercase tracking-widest text-xs">AI Logic Engine Active</p><p className="text-[10px] uppercase font-bold text-slate-400 animate-pulse bg-white px-3 py-1 rounded-full shadow-sm">{aiStep}</p></div>}
+                </div>
+                
+                <div className="w-full md:w-1/2 bg-white flex flex-col overflow-y-auto">
+                  <div className="p-4 border-b sticky top-0 bg-white/90 backdrop-blur z-10 flex justify-between items-center px-8">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Variations</h3>
+                    <div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter">Gemini 3.1 Pro</div>
+                  </div>
+                  <div className="p-8 space-y-4 text-left">
+                    {status === 'ready' ? (
+                      data.variations.map((v, i) => (
+                        <div key={i} className="border-2 border-slate-50 rounded-3xl overflow-hidden transition-all duration-300 hover:border-indigo-100">
+                          <button onClick={() => setExpandedVariations(prev => ({ ...prev, [i]: !prev[i] }))} className={`w-full p-6 flex justify-between items-center transition-colors ${expandedVariations[i] ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}><div className="flex items-center gap-3"><span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${expandedVariations[i] ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'}`}>{v.category}</span><span className="font-bold text-sm tracking-tight">Expand Variation</span></div>{expandedVariations[i] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>
+                          {expandedVariations[i] && ( <div className="p-8 space-y-6 animate-in slide-in-from-top-2 duration-300"><div className="text-slate-700 leading-relaxed text-lg prose prose-indigo whitespace-pre-wrap"><Latex>{v.text}</Latex></div><button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 active:scale-95 transition-all shadow-sm">{showSolutions[i] ? <EyeOff size={16} /> : <Eye size={16} />} {showSolutions[i] ? 'Hide Solution' : 'Show Solution'}</button>{showSolutions[i] && <div className="mt-4 p-8 bg-slate-50 rounded-3xl border border-slate-100 text-slate-600 shadow-inner animate-in zoom-in-95"><div className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-widest text-center">Pedagogical Solution</div><div className="prose prose-slate max-w-none whitespace-pre-wrap"><Latex>{v.solution}</Latex></div></div>}</div> )}
+                        </div>
+                      ))
+                    ) : ( <div className="space-y-6 text-center py-20">{[1,2,3].map(i => <div key={i} className="space-y-3 animate-pulse opacity-20"><div className="h-4 w-24 bg-slate-100 rounded mx-auto"></div><div className="h-20 w-full bg-slate-50 rounded-2xl"></div></div>)}<p className="text-[10px] font-black text-slate-200 uppercase tracking-widest mt-4">Awaiting AI Logic</p></div> )}
+                  </div>
+                </div>
+              </main>
+              <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => onSelectFile(e, activeUploadType)} />
             </div>
-          </main>
-          <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => onSelectFile(e, activeUploadType)} />
-        </div>
-      )}
+          )
+        ) : (
+          /* QUESTION EXTRACTOR VIEW */
+          <div className="flex-1 flex flex-col relative h-full bg-slate-50">
+            <header className="h-16 border-b bg-white flex items-center justify-between px-8 shrink-0 shadow-sm">
+              <div className="flex items-center gap-3 font-black text-indigo-600 italic text-xl">Question Extractor</div>
+              <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full">
+                <GraduationCap size={16} className="text-indigo-600" />
+                <span className="text-[10px] font-black uppercase text-indigo-600 tracking-tighter">Educator Mode</span>
+              </div>
+            </header>
+
+            <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+              <div className="w-full md:w-1/2 border-r bg-white p-8 overflow-y-auto space-y-8">
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Source Material</h4>
+                  <textarea placeholder="Paste your notes, lecture text, or content here..." value={extractContent} onChange={(e) => setExtractContent(e.target.value)} className="w-full min-h-[300px] p-6 bg-slate-50 rounded-3xl border-2 border-slate-100 focus:border-indigo-500 outline-none transition-all text-lg shadow-inner resize-none" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Subject / Module</h4>
+                    <input type="text" placeholder="e.g. GEA1000" value={extractSubject} onChange={(e) => setExtractSubject(e.target.value)} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none transition-all font-bold" />
+                  </div>
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Target Level</h4>
+                    <select value={extractLevel} onChange={(e) => setExtractLevel(e.target.value)} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none transition-all font-bold">
+                      <option>Primary School</option><option>Secondary School</option><option>Junior College</option><option>University</option>
+                    </select>
+                  </div>
+                </div>
+                <button onClick={handleExtract} disabled={isExtracting || !extractContent.trim()} className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl ${isExtracting || !extractContent.trim() ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-black active:scale-[0.98] shadow-indigo-200'}`}>
+                  {isExtracting ? <Loader2 className="animate-spin" /> : <Sparkles size={20} className="text-indigo-400" />}
+                  {isExtracting ? 'Analyzing Content...' : 'Generate Questions'}
+                </button>
+              </div>
+
+              <div className="w-full md:w-1/2 overflow-y-auto bg-slate-50/50 p-8">
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Extracted Questions</h3>
+                  <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black">{extractedQuestions.length} Questions</span>
+                </div>
+                <div className="space-y-6">
+                  {extractedQuestions.length > 0 ? (
+                    extractedQuestions.map((q, idx) => (
+                      <div key={idx} className="bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:border-indigo-100 transition-all space-y-6 text-left">
+                        <div className="flex items-center gap-2"><span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-lg tracking-wider">{q.type}</span></div>
+                        <div className="text-lg font-medium leading-relaxed prose prose-indigo"><Latex>{q.question}</Latex></div>
+                        {q.options && q.options.length > 0 && (
+                          <div className="grid grid-cols-1 gap-2 pl-4 border-l-2 border-indigo-50 py-2">
+                            {q.options.map((opt, oIdx) => ( <div key={oIdx} className="text-sm text-slate-600 font-medium"><Latex>{opt}</Latex></div> ))}
+                          </div>
+                        )}
+                        <div className="pt-4 border-t border-slate-50">
+                          <button onClick={() => setShowExtractedSolutions(p => ({ ...p, [idx]: !p[idx] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition-all">
+                            {showExtractedSolutions[idx] ? <EyeOff size={14} /> : <Eye size={14} />} {showExtractedSolutions[idx] ? 'Hide Solution' : 'Show Solution'}
+                          </button>
+                          {showExtractedSolutions[idx] && (
+                            <div className="mt-4 p-6 bg-slate-50 rounded-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+                              <div className="text-[10px] font-black uppercase text-indigo-400 mb-2">Answer: {q.answer}</div>
+                              <div className="prose prose-slate text-sm leading-relaxed"><Latex>{q.solution}</Latex></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20 opacity-20">
+                      <BrainCircuit size={48} className="text-slate-300" /><p className="font-bold uppercase tracking-[0.2em] text-xs text-slate-400">Awaiting Extraction</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </main>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
