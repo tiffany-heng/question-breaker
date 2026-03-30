@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         - Avoid simple definition-based questions.
         - Match difficulty to ${level} standards.
         - Ensure clarity and precision.
-        - Use LaTeX for all mathematical expressions.
+        - Wrap ALL mathematical expressions, formulas, and technical notations in $ delimiters (e.g., $E=mc^2$ or $\frac{a}{b}$). This is CRITICAL for rendering.
         
         OUTPUT FORMAT (STRICT JSON):
         {
