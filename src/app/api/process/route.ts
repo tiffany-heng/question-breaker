@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         
         TASK:
         1. Analyze the input text and identify the core concepts relevant to the subject syllabus for the ${level} level.
-        2. Create a CONCEPT TREE representing the main themes and their relationships in a directory-style format (e.g., using "├──", "└──", and indentation).
+        2. Create a CONCEPT TREE representing the main themes and their relationships in a directory-style format (e.g., using "├──", "└──", and indentation). Use LaTeX for any mathematical or technical notations.
         3. GENERATE a diverse mix of 4-6 high-quality questions. You MUST provide a variety of formats; do not make all questions the same type.
         4. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding:
            - MCQ: Use for precise identification, terminology, or single-step applications.

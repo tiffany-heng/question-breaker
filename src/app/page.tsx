@@ -657,7 +657,7 @@ export default function QuestionBreaker() {
                     </h4>
                     <div className="bg-slate-900 rounded-3xl p-8 shadow-xl border border-slate-800 text-left">
                       <pre className="text-indigo-300 font-mono text-sm leading-relaxed overflow-x-auto whitespace-pre">
-                        {extractConceptTree.join('\n')}
+                        <Latex>{extractConceptTree.join('\n')}</Latex>
                       </pre>
                     </div>
                   </div>
