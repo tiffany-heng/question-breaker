@@ -70,6 +70,7 @@ export default function QuestionBreaker() {
   const [extractedQuestions, setExtractedQuestions] = useState<ExtractedQuestion[]>([]);
   const [extractConceptTree, setExtractConceptTree] = useState<string[]>([]);
   const [currentExtractIdx, setCurrentExtractIdx] = useState(0);
+  const [allConceptsTested, setAllConceptsTested] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isAddingMore, setIsAddingMore] = useState(false);
   const [showExtractedSolutions, setShowExtractedSolutions] = useState<Record<number, boolean>>({});
@@ -292,6 +293,7 @@ export default function QuestionBreaker() {
       if (result.questions) {
         setExtractedQuestions(result.questions);
         setExtractConceptTree(result.conceptTree || []);
+        setAllConceptsTested(!!result.allConceptsTested);
       } else if (result.error) {
         alert("Extraction Error: " + result.error);
       }
@@ -322,6 +324,7 @@ export default function QuestionBreaker() {
       if (result.questions) {
         setExtractedQuestions(prev => [...prev, ...result.questions]);
         if (result.conceptTree) setExtractConceptTree(result.conceptTree);
+        setAllConceptsTested(!!result.allConceptsTested);
       } else if (result.error) {
         alert("Expansion Error: " + result.error);
       }
@@ -700,6 +703,18 @@ export default function QuestionBreaker() {
                   <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black">{extractedQuestions.length} Questions</span>
                 </div>
                 <div className="space-y-6">
+                  {allConceptsTested && (
+                    <div className="bg-green-50 border-2 border-green-100 p-6 rounded-3xl flex items-center gap-4 animate-in fade-in zoom-in-95 duration-500 text-left">
+                      <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-green-200">
+                        <Sparkles size={20} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase text-green-700 tracking-wider">Full Coverage Reached</p>
+                        <p className="text-[10px] text-green-600 font-bold leading-relaxed">Gemini has confirmed that all major concepts from your material are now thoroughly tested.</p>
+                      </div>
+                    </div>
+                  )}
+
                   {extractedQuestions.length > 0 ? (
                     <>
                       {/* SINGLE QUESTION CARD VIEW */}

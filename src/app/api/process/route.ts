@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
         
         OUTPUT FORMAT (STRICT JSON):
         {
+          "allConceptsTested": true | false,
           "conceptTree": ["Root Concept", "├── Sub Concept A", "│   └── Detail 1", "└── Sub Concept B"],
           "questions": [
             {
