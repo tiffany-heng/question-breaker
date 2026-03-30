@@ -47,11 +47,12 @@ export async function POST(req: NextRequest) {
         ${existingText}
 
         TASK:
-        1. Analyze the input text and identify core concepts NOT yet fully tested by the already generated questions.
-        2. Create a CONCEPT TREE representing the main themes and their relationships in a directory-style format (e.g., using "├──", "└──", and indentation). Use LaTeX for any mathematical or technical notations.
-        3. GENERATE a diverse mix of 3-5 NEW high-quality questions. You MUST provide a variety of formats; do not make all questions the same type.
-        4. Ensure these NEW questions test different aspects or deeper applications than the existing ones.
-        5. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding:
+        1. CRITICAL: Analyze the 'ALREADY GENERATED QUESTIONS' list to determine which sub-topics have already been addressed.
+        2. CROSS-REFERENCE these with the 'Source Material' to identify UNTESTED or UNDER-TESTED concepts.
+        3. Create a COMPREHENSIVE CONCEPT TREE representing the main themes of the entire text in a directory-style format.
+        4. GENERATE a diverse mix of 3-5 BRAND NEW high-quality questions that target DIFFERENT concepts or significantly deeper applications than the existing ones.
+        5. Priority MUST be given to breadth of coverage across the entire source material. If all major concepts are already covered, pivot to complex synthesis questions that combine multiple concepts.
+        6. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding:
            - MCQ: Use for precise identification, terminology, or single-step applications.
            - MRQ: Use for concepts with multiple valid components, dependencies, or "select all that apply" scenarios.
            - Short Answer: Use for specific calculations, formula applications, or brief technical explanations.
