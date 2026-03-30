@@ -96,6 +96,9 @@ export default function QuestionBreaker() {
       await supabase.auth.signInAnonymously();
       const savedRoomId = localStorage.getItem('qb_active_room_id');
       const savedCode = localStorage.getItem('qb_pairing_code');
+      const savedLevel = localStorage.getItem('qb_extract_level');
+      if (savedLevel) setExtractLevel(savedLevel);
+      
       if (savedRoomId) {
         setRoomId(savedRoomId);
         setPairingCode(savedCode || '');
@@ -672,7 +675,7 @@ export default function QuestionBreaker() {
                   </div>
                   <div className="space-y-3">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Target Level</h4>
-                    <select value={extractLevel} onChange={(e) => setExtractLevel(e.target.value)} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none transition-all font-bold">
+                    <select value={extractLevel} onChange={(e) => { setExtractLevel(e.target.value); localStorage.setItem('qb_extract_level', e.target.value); }} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none transition-all font-bold">
                       <option>Primary School</option><option>Secondary School</option><option>Junior College</option><option>University</option>
                     </select>
                   </div>
