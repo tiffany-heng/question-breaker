@@ -37,13 +37,16 @@ export async function POST(req: NextRequest) {
         TARGET LEVEL: "${level || 'General'}"
         
         TASK:
-        Analyze the input text and identify the core concepts relevant to the subject syllabus for the ${level} level.
+        1. Analyze the input text and identify the core concepts relevant to the subject syllabus for the ${level} level.
+        2. Create a CONCEPT TREE representing the main themes and their relationships in a directory-style format (e.g., using "├──", "└──", and indentation).
+        3. GENERATE a diverse mix of 4-6 high-quality questions. You MUST provide a variety of formats; do not make all questions the same type.
+        4. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding:
+           - MCQ: Use for precise identification, terminology, or single-step applications.
+           - MRQ: Use for concepts with multiple valid components, dependencies, or "select all that apply" scenarios.
+           - Short Answer: Use for specific calculations, formula applications, or brief technical explanations.
+           - Open-ended: Use for synthesis of multiple concepts, deep reasoning, evaluation, or explaining complex mechanisms.
         
-        GENERATE a mix of:
-        - Multiple-choice questions (MCQ)
-        - Multiple response questions (MRQ)
-        - Short answer questions (Short)
-        - Open-ended questions (Open)
+        The final set MUST be a balanced distribution that reflects the varying depth and technicality of the source material.
         
         REQUIREMENTS:
         - Questions must test application, reasoning, or calculation.
@@ -54,6 +57,7 @@ export async function POST(req: NextRequest) {
         
         OUTPUT FORMAT (STRICT JSON):
         {
+          "conceptTree": ["Root Concept", "├── Sub Concept A", "│   └── Detail 1", "└── Sub Concept B"],
           "questions": [
             {
               "type": "mcq | mrq | short | open",

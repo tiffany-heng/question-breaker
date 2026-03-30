@@ -68,6 +68,7 @@ export default function QuestionBreaker() {
   const [extractSubject, setExtractSubject] = useState('');
   const [extractLevel, setExtractLevel] = useState('Secondary School');
   const [extractedQuestions, setExtractedQuestions] = useState<ExtractedQuestion[]>([]);
+  const [extractConceptTree, setExtractConceptTree] = useState<string[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [showExtractedSolutions, setShowExtractedSolutions] = useState<Record<number, boolean>>({});
 
@@ -271,6 +272,7 @@ export default function QuestionBreaker() {
     if (!extractContent.trim()) return;
     setIsExtracting(true);
     setExtractedQuestions([]);
+    setExtractConceptTree([]);
     setShowExtractedSolutions({});
 
     try {
@@ -287,6 +289,7 @@ export default function QuestionBreaker() {
       const result = await resp.json();
       if (result.questions) {
         setExtractedQuestions(result.questions);
+        setExtractConceptTree(result.conceptTree || []);
       } else if (result.error) {
         alert("Extraction Error: " + result.error);
       }
@@ -646,6 +649,20 @@ export default function QuestionBreaker() {
               </div>
 
               <div className="w-full md:w-1/2 overflow-y-auto bg-slate-50/50 p-8">
+                {/* CORE CONCEPTS SECTION */}
+                {extractConceptTree.length > 0 && (
+                  <div className="mb-10 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 text-left">
+                      <BrainCircuit size={14} className="text-indigo-600"/> Core Concepts Breakdown
+                    </h4>
+                    <div className="bg-slate-900 rounded-3xl p-8 shadow-xl border border-slate-800 text-left">
+                      <pre className="text-indigo-300 font-mono text-sm leading-relaxed overflow-x-auto whitespace-pre">
+                        {extractConceptTree.join('\n')}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center mb-8">
                   <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 italic">Extracted Questions</h3>
                   <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black">{extractedQuestions.length} Questions</span>
