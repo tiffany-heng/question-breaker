@@ -748,8 +748,8 @@ export default function QuestionBreaker() {
                           </button>
                           {showExtractedSolutions[currentExtractIdx] && (
                             <div className="mt-4 p-6 bg-slate-50 rounded-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
-                              <div className="text-xs font-black uppercase text-indigo-500 mb-3 flex items-center gap-2">
-                                <span className="bg-indigo-100 px-2 py-0.5 rounded">Final Answer:</span>
+                              <div className="text-xs font-black text-indigo-500 mb-3 flex items-center gap-2">
+                                <span className="bg-indigo-100 px-2 py-0.5 rounded tracking-wide">Final Answer:</span>
                                 <Latex>{extractedQuestions[currentExtractIdx].answer}</Latex>
                               </div>
                               <div className="prose prose-slate text-sm leading-relaxed"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
