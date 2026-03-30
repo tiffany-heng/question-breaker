@@ -98,10 +98,19 @@ export async function POST(req: NextRequest) {
       const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
       
       try {
-        const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Find the first '{' and the last '}' to handle any surrounding text
+        const firstBrace = rawText.indexOf('{');
+        const lastBrace = rawText.lastIndexOf('}');
+        
+        if (firstBrace === -1 || lastBrace === -1) {
+          throw new Error("No JSON object found in response");
+        }
+        
+        const cleanJson = rawText.substring(firstBrace, lastBrace + 1);
         const result = JSON.parse(cleanJson);
         return NextResponse.json(result);
       } catch (e) {
+        console.error("AI Pipeline: Extraction JSON Parse Error", e);
         return NextResponse.json({ error: "Extraction JSON Error", raw: rawText });
       }
     }
