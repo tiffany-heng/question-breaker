@@ -69,6 +69,7 @@ export default function QuestionBreaker() {
   const [extractLevel, setExtractLevel] = useState('Secondary School');
   const [extractedQuestions, setExtractedQuestions] = useState<ExtractedQuestion[]>([]);
   const [extractConceptTree, setExtractConceptTree] = useState<string[]>([]);
+  const [currentExtractIdx, setCurrentExtractIdx] = useState(0);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isAddingMore, setIsAddingMore] = useState(false);
   const [showExtractedSolutions, setShowExtractedSolutions] = useState<Record<number, boolean>>({});
@@ -701,37 +702,73 @@ export default function QuestionBreaker() {
                 <div className="space-y-6">
                   {extractedQuestions.length > 0 ? (
                     <>
-                      {extractedQuestions.map((q, idx) => (
-                        <div key={idx} className="bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:border-indigo-100 transition-all space-y-6 text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          <div className="flex items-center gap-2"><span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-lg tracking-wider">{q.type}</span></div>
-                          <div className="text-lg font-medium leading-relaxed prose prose-indigo"><Latex>{q.question}</Latex></div>
-                          {q.options && q.options.length > 0 && (
+                      {/* SINGLE QUESTION CARD VIEW */}
+                      <div className="bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:border-indigo-100 transition-all space-y-6 text-left animate-in fade-in slide-in-from-right-4 duration-500 relative min-h-[400px] flex flex-col justify-between">
+                        <div className="space-y-6">
+                          <div className="flex justify-between items-center">
+                            <span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-lg tracking-wider">
+                              {extractedQuestions[currentExtractIdx].type}
+                            </span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              Question {currentExtractIdx + 1} of {extractedQuestions.length}
+                            </span>
+                          </div>
+
+                          <div className="text-lg font-medium leading-relaxed prose prose-indigo">
+                            <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
+                          </div>
+
+                          {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
                             <div className="grid grid-cols-1 gap-2 pl-4 border-l-2 border-indigo-50 py-2">
-                              {q.options.map((opt, oIdx) => ( <div key={oIdx} className="text-sm text-slate-600 font-medium"><Latex>{opt}</Latex></div> ))}
+                              {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
+                                <div key={oIdx} className="text-sm text-slate-600 font-medium"><Latex>{opt}</Latex></div>
+                              ))}
                             </div>
                           )}
-                          <div className="pt-4 border-t border-slate-50">
-                            <button onClick={() => setShowExtractedSolutions(p => ({ ...p, [idx]: !p[idx] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition-all">
-                              {showExtractedSolutions[idx] ? <EyeOff size={14} /> : <Eye size={14} />} {showExtractedSolutions[idx] ? 'Hide Solution' : 'Show Solution'}
-                            </button>
-                            {showExtractedSolutions[idx] && (
-                              <div className="mt-4 p-6 bg-slate-50 rounded-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
-                                <div className="text-[10px] font-black uppercase text-indigo-400 mb-2">Answer: {q.answer}</div>
-                                <div className="prose prose-slate text-sm leading-relaxed"><Latex>{q.solution}</Latex></div>
-                              </div>
-                            )}
-                          </div>
                         </div>
-                      ))}
+
+                        <div className="pt-4 border-t border-slate-50">
+                          <button onClick={() => setShowExtractedSolutions(p => ({ ...p, [currentExtractIdx]: !p[currentExtractIdx] }))} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition-all">
+                            {showExtractedSolutions[currentExtractIdx] ? <EyeOff size={14} /> : <Eye size={14} />} {showExtractedSolutions[currentExtractIdx] ? 'Hide Solution' : 'Show Solution'}
+                          </button>
+                          {showExtractedSolutions[currentExtractIdx] && (
+                            <div className="mt-4 p-6 bg-slate-50 rounded-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+                              <div className="text-[10px] font-black uppercase text-indigo-400 mb-2">Answer: {extractedQuestions[currentExtractIdx].answer}</div>
+                              <div className="prose prose-slate text-sm leading-relaxed"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* NAVIGATION CONTROLS */}
+                      <div className="flex gap-4">
+                        <button 
+                          onClick={() => setCurrentExtractIdx(prev => Math.max(0, prev - 1))}
+                          disabled={currentExtractIdx === 0}
+                          className={`flex-1 py-4 bg-white border-2 border-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${currentExtractIdx > 0 ? 'hover:border-indigo-600 hover:text-indigo-600 text-slate-600' : 'text-slate-300 opacity-50'}`}
+                        >
+                          <ChevronLeft size={16} /> Previous
+                        </button>
+                        <button 
+                          onClick={() => setCurrentExtractIdx(prev => Math.min(extractedQuestions.length - 1, prev + 1))}
+                          disabled={currentExtractIdx === extractedQuestions.length - 1}
+                          className={`flex-1 py-4 bg-white border-2 border-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${currentExtractIdx < extractedQuestions.length - 1 ? 'hover:border-indigo-600 hover:text-indigo-600 text-slate-600' : 'text-slate-300 opacity-50'}`}
+                        >
+                          Next <ChevronRight size={16} />
+                        </button>
+                      </div>
                       
-                      <button 
-                        onClick={handleMoreQuestions} 
-                        disabled={isAddingMore}
-                        className={`w-full py-4 mt-4 border-2 border-dashed border-indigo-200 rounded-3xl text-indigo-600 font-black text-xs uppercase tracking-widest hover:bg-indigo-50 hover:border-indigo-400 transition-all flex items-center justify-center gap-2 ${isAddingMore ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {isAddingMore ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
-                        {isAddingMore ? 'Generating More...' : 'Load More Questions'}
-                      </button>
+                      {/* LOAD MORE - ONLY AT THE END */}
+                      {currentExtractIdx === extractedQuestions.length - 1 && (
+                        <button 
+                          onClick={handleMoreQuestions} 
+                          disabled={isAddingMore}
+                          className={`w-full py-4 mt-4 border-2 border-dashed border-indigo-200 rounded-3xl text-indigo-600 font-black text-xs uppercase tracking-widest hover:bg-indigo-50 hover:border-indigo-400 transition-all flex items-center justify-center gap-2 ${isAddingMore ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {isAddingMore ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
+                          {isAddingMore ? 'Generating More...' : 'Load More Questions'}
+                        </button>
+                      )}
                     </>
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20 opacity-20">
