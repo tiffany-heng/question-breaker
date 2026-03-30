@@ -29,18 +29,29 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === 'extract') {
-      console.log(`AI Pipeline: Starting Extraction for ${subject} at ${level} level...`);
+      const { extractContent, subject, level, existingQuestions = [] } = body;
+      console.log(`AI Pipeline: Starting Extraction for ${subject} at ${level} level. Existing questions: ${existingQuestions.length}`);
+      
+      const existingText = existingQuestions.length > 0 
+        ? `\n\nALREADY GENERATED QUESTIONS (DO NOT REPEAT THESE):\n${JSON.stringify(existingQuestions.map((q: any) => q.question))}`
+        : '';
+
       const extractPrompt = `
         You are an Expert Educator in ${subject || 'General Education'}.
         
-        INPUT TEXT: "${extractContent}"
-        TARGET LEVEL: "${level || 'General'}"
-        
+        CONTEXT:
+        Subject: ${subject}
+        Target Level: ${level}
+        Source Material:
+        ${extractContent}
+        ${existingText}
+
         TASK:
-        1. Analyze the input text and identify the core concepts relevant to the subject syllabus for the ${level} level.
+        1. Analyze the input text and identify core concepts NOT yet fully tested by the already generated questions.
         2. Create a CONCEPT TREE representing the main themes and their relationships in a directory-style format (e.g., using "├──", "└──", and indentation). Use LaTeX for any mathematical or technical notations.
-        3. GENERATE a diverse mix of 4-6 high-quality questions. You MUST provide a variety of formats; do not make all questions the same type.
-        4. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding:
+        3. GENERATE a diverse mix of 3-5 NEW high-quality questions. You MUST provide a variety of formats; do not make all questions the same type.
+        4. Ensure these NEW questions test different aspects or deeper applications than the existing ones.
+        5. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding:
            - MCQ: Use for precise identification, terminology, or single-step applications.
            - MRQ: Use for concepts with multiple valid components, dependencies, or "select all that apply" scenarios.
            - Short Answer: Use for specific calculations, formula applications, or brief technical explanations.
