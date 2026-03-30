@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
         The final set MUST be a balanced distribution that reflects the varying depth and technicality of the source material.
         
         REQUIREMENTS:
+        - DIRECT RELEVANCE: Every question MUST be directly derived from the provided 'Source Material' and strictly adhere to the '${subject}' syllabus at the '${level}' level.
         - Questions must test application, reasoning, or calculation.
         - Avoid simple definition-based questions.
         - Match difficulty to ${level} standards.
