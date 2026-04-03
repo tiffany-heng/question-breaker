@@ -378,61 +378,60 @@ export default function QuestionBreaker() {
   if (isInitializing) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#faf9fa] text-[#1b1c1d] font-sans antialiased selection:bg-[#d9e2ff] selection:text-[#001946] flex">
+    <div className="h-screen bg-[#faf9fa] text-[#1b1c1d] font-sans antialiased selection:bg-[#d9e2ff] selection:text-[#001946] flex overflow-hidden">
       {/* SIDEBAR */}
-      <aside className={`fixed left-0 top-0 h-full z-50 bg-[#faf9fa] border-r border-slate-200/50 shadow-2xl transition-all duration-300 flex flex-col py-8 px-4 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
-        <div className="mb-10 px-2 flex items-center justify-between">
-          {sidebarOpen && (
-            <div>
-              <h1 className="font-serif text-xl font-black text-slate-900 tracking-tighter">Question Breaker</h1>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1">Premium Pedagogy</p>
-            </div>
-          )}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors mx-auto">
-            {sidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-          </button>
+      <aside className="w-64 z-50 bg-white border-r border-slate-200/60 flex flex-col py-10 px-6 shrink-0 h-full">
+        <div className="mb-12 px-2">
+          <h1 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">Question Breaker</h1>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1.5">Premium Pedagogy</p>
         </div>
 
-        <nav className="flex-1 space-y-1">
+        <nav className="flex-1 space-y-2">
           <button 
             onClick={() => setActiveMode('breaker')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 text-sm font-medium ${activeMode === 'breaker' ? 'text-blue-700 bg-blue-50/50 border-r-2 border-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'breaker' ? 'text-blue-700 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            <BrainCircuit size={18} className={activeMode === 'breaker' ? 'text-blue-700' : ''} />
-            {sidebarOpen && <span>Breaker</span>}
+            <div className="flex items-center gap-4">
+              <BrainCircuit size={18} className={activeMode === 'breaker' ? 'text-blue-700' : 'text-slate-400'} />
+              <span>Breaker</span>
+            </div>
+            {activeMode === 'breaker' && <div className="absolute right-0 h-4 w-[2.5px] bg-blue-700 rounded-full"></div>}
           </button>
           <button 
             onClick={() => setActiveMode('extractor')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 text-sm font-medium ${activeMode === 'extractor' ? 'text-blue-700 bg-blue-50/50 border-r-2 border-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'extractor' ? 'text-blue-700 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            <Sparkles size={18} className={activeMode === 'extractor' ? 'text-blue-700' : ''} />
-            {sidebarOpen && <span>Extractor</span>}
+            <div className="flex items-center gap-4">
+              <Sparkles size={18} className={activeMode === 'extractor' ? 'text-blue-700' : 'text-slate-400'} />
+              <span>Extractor</span>
+            </div>
+            {activeMode === 'extractor' && <div className="absolute right-0 h-4 w-[2.5px] bg-blue-700 rounded-full"></div>}
           </button>
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-slate-200/20 space-y-1">
-          <button onClick={() => setShowHistory(true)} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-all text-sm">
-            <History size={18} />
-            {sidebarOpen && <span>History</span>}
+        <div className="mt-auto pt-8 border-t border-slate-200/60 space-y-2">
+          <button onClick={() => setShowHistory(true)} className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium">
+            <History size={18} className="text-slate-400" />
+            <span>History</span>
           </button>
-          <button onClick={resetSession} className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all text-sm">
-            <LogOut size={18} />
-            {sidebarOpen && <span>Logout</span>}
+          <button className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium">
+            <X size={18} className="text-slate-400" />
+            <span>Help</span>
           </button>
         </div>
       </aside>
 
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* HEADER */}
-        <header className="fixed top-0 right-0 z-40 bg-[#faf9fa]/80 backdrop-blur-xl flex justify-between items-center px-8 h-16 border-b border-slate-200/50" style={{ left: sidebarOpen ? '16rem' : '5rem' }}>
+        <header className="bg-[#faf9fa] flex justify-between items-center px-10 h-20 shrink-0">
           <div className="flex items-center gap-4">
-            <span className="font-serif font-bold text-slate-900 tracking-tighter text-lg">
+            <span className="font-serif font-bold text-blue-900 tracking-tight text-xl">
               {activeMode === 'breaker' ? 'Analysis View' : 'Workspace'}
             </span>
-            {roomId && <div className="px-3 py-1 bg-blue-50 rounded-full text-[10px] font-mono font-bold text-blue-600 tracking-widest uppercase">Room: {pairingCode}</div>}
           </div>
-          <div className="flex items-center gap-2">
-            <button className="p-2 text-slate-500 hover:bg-slate-200/50 transition-colors rounded-lg"><Settings size={18}/></button>
+          <div className="flex items-center gap-6">
+            <button onClick={() => setShowHistory(true)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><History size={20}/></button>
+            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><Settings size={20}/></button>
           </div>
         </header>
 
@@ -478,11 +477,11 @@ export default function QuestionBreaker() {
           </div>
         )}
 
-        <main className="flex-1 mt-16 overflow-hidden flex">
+        <main className="flex-1 overflow-hidden">
           {activeMode === 'breaker' ? (
             !roomId ? (
               /* JOIN SCREEN */
-              <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 h-full bg-slate-50">
                 <div className="max-w-sm w-full space-y-8 bg-white p-10 rounded-2xl shadow-sm border border-slate-200/50 text-center">
                   <h1 className="text-3xl font-serif font-black text-slate-900 tracking-tighter">Question Breaker</h1>
                   <button onClick={createRoom} className="w-full flex items-center justify-center gap-3 p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-200">
@@ -499,89 +498,93 @@ export default function QuestionBreaker() {
                 </div>
               </div>
             ) : (
-              /* BREAKER VIEW */
-              <div className="flex-1 flex overflow-hidden">
-                {/* Left: Source Materials */}
-                <section className="w-1/2 p-10 border-r border-slate-200/50 bg-white overflow-y-auto scrollbar-hide space-y-10">
+              /* BREAKER VIEW (60/40 Split) */
+              <div className="flex h-full overflow-hidden">
+                {/* Left: Input Column (60%) */}
+                <section className="w-[60%] p-10 bg-white overflow-y-auto scrollbar-hide space-y-12">
                   <header>
                     <h2 className="font-headline text-3xl font-bold text-slate-900">Source Materials</h2>
-                    <p className="text-sm text-slate-500 mt-2">Upload the question and the ideal solution path.</p>
+                    <p className="text-sm text-slate-500 mt-2 font-medium">Upload the question and the ideal solution path.</p>
                   </header>
 
-                  <div className="space-y-8">
-                    {/* Question Input Zone */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
-                        <div className="flex bg-slate-100 p-1 rounded-lg">
-                          <button onClick={() => setIsQuestionTextMode(false)} className={`p-1.5 rounded-md transition-all ${!isQuestionTextMode ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><ImageIcon size={14}/></button>
-                          <button onClick={() => setIsQuestionTextMode(true)} className={`p-1.5 rounded-md transition-all ${isQuestionTextMode ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><FileText size={14}/></button>
-                        </div>
-                      </div>
+                  <div className="space-y-10">
+                    {/* The Question Upload Box */}
+                    <div className="space-y-4">
                       {isQuestionTextMode ? (
-                        <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))} onBlur={(e) => saveToDb({ questionText: e.target.value })} className="question-input w-full min-h-[180px] bg-slate-50/50 rounded-xl p-5 text-base border border-slate-200 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all resize-none font-body leading-relaxed" />
+                        <div className="space-y-2">
+                           <div className="flex justify-between items-center px-1">
+                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
+                             <button onClick={() => setIsQuestionTextMode(false)} className="text-[10px] font-bold uppercase text-blue-600 hover:underline">Switch to Image</button>
+                           </div>
+                           <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))} onBlur={(e) => saveToDb({ questionText: e.target.value })} className="question-input w-full min-h-[180px] bg-slate-50/50 rounded-xl p-6 text-base border border-slate-200 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all resize-none font-body leading-relaxed" />
+                        </div>
                       ) : (
                         data.questionImageUrl ? (
-                          <div className="relative group">
-                            <img src={data.questionImageUrl} alt="Question" className="w-full rounded-xl border border-slate-100 shadow-sm cursor-pointer hover:opacity-95 transition-all" onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} />
-                            <button className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><Upload size={14} className="text-blue-600"/></button>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center px-1">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
+                              <button onClick={() => setIsQuestionTextMode(true)} className="text-[10px] font-bold uppercase text-blue-600 hover:underline">Switch to Text</button>
+                            </div>
+                            <div className="relative group">
+                              <img src={data.questionImageUrl} alt="Question" className="w-full rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-95 transition-all" onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} />
+                              <button onClick={(e) => { e.stopPropagation(); setData(p => ({ ...p, questionImageUrl: null })); saveToDb({ questionImageUrl: null }); }} className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} className="text-red-500"/></button>
+                            </div>
                           </div>
                         ) : (
-                          <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 space-y-3 hover:bg-slate-100 hover:border-blue-400 transition-all group">
-                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><Upload size={20} className="text-blue-600 opacity-60"/></div>
-                            <span className="text-xs font-bold uppercase tracking-widest">Drop Question Image here</span>
+                          <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-full aspect-[2/1] bg-white rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 space-y-4 hover:border-blue-400 hover:bg-slate-50 transition-all group">
+                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform"><Upload size={20} className="text-blue-600"/></div>
+                            <div className="text-center">
+                              <p className="text-sm font-bold text-slate-900">Drop 'The Question' here</p>
+                              <p className="text-[11px] font-medium text-slate-400 mt-1 uppercase tracking-wider">PNG, JPG or PDF up to 10MB</p>
+                            </div>
                           </button>
                         )
                       )}
                     </div>
 
-                    {/* Solution Input Zone */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Solution Reference</label>
-                        <div className="flex items-center gap-2">
-                          {isSolutionEnabled ? (
-                            <div className="flex bg-blue-50/50 p-1 rounded-lg border border-blue-100">
-                              <button onClick={() => setIsSolutionTextMode(false)} className={`p-1.5 rounded-md transition-all ${!isSolutionTextMode ? 'bg-white shadow-sm text-blue-600' : 'text-blue-300'}`}><ImageIcon size={14}/></button>
-                              <button onClick={() => setIsSolutionTextMode(true)} className={`p-1.5 rounded-md transition-all ${isSolutionTextMode ? 'bg-white shadow-sm text-blue-600' : 'text-blue-300'}`}><FileText size={14}/></button>
-                              <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="p-1.5 text-red-300 hover:text-red-500 ml-1 transition-colors"><Trash2 size={14}/></button>
-                            </div>
+                    {/* Solution Reference Card */}
+                    {isSolutionEnabled && (
+                      <div className="bg-slate-50/50 rounded-xl overflow-hidden border border-slate-200/60 shadow-sm">
+                        <div className="px-5 py-4 bg-slate-50 flex justify-between items-center border-b border-slate-200/60">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Solution Reference</span>
+                          <button onClick={() => { setIsSolutionEnabled(false); setData(p => ({ ...p, solutionImageUrl: null, solutionText: '' })); saveToDb({ solutionImageUrl: null, solutionText: '' }); }} className="text-red-400 hover:text-red-600 transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        <div className="p-0">
+                          {isSolutionTextMode ? (
+                            <textarea placeholder="Paste reference solution steps..." value={data.solutionText} onChange={(e) => setData(p => ({ ...p, solutionText: e.target.value }))} onBlur={(e) => saveToDb({ solutionText: e.target.value })} className="solution-input w-full min-h-[200px] bg-white rounded-none p-6 text-sm border-none focus:ring-0 outline-none transition-all resize-none italic text-slate-600 font-serif leading-relaxed" />
                           ) : (
-                            <button onClick={() => setIsSolutionEnabled(true)} className="text-[10px] font-bold uppercase text-blue-500 flex items-center gap-1.5 px-3 py-1 bg-blue-50 rounded-full hover:bg-blue-100 transition-all"><Plus size={12}/> Add Context</button>
+                            data.solutionImageUrl ? (
+                              <img src={data.solutionImageUrl} alt="Solution" className="w-full object-cover max-h-[400px] cursor-pointer" onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} />
+                            ) : (
+                              <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full h-32 flex items-center justify-center text-blue-500 font-bold text-sm hover:bg-white transition-all">Upload Solution Image</button>
+                            )
                           )}
                         </div>
                       </div>
-                      {isSolutionEnabled && (
-                        isSolutionTextMode ? (
-                          <textarea placeholder="Paste reference solution steps..." value={data.solutionText} onChange={(e) => setData(p => ({ ...p, solutionText: e.target.value }))} onBlur={(e) => saveToDb({ solutionText: e.target.value })} className="solution-input w-full min-h-[140px] bg-blue-50/20 rounded-xl p-5 text-sm border border-blue-100/50 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all resize-none italic text-slate-600" />
-                        ) : (
-                          data.solutionImageUrl ? (
-                            <div className="relative group">
-                              <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-xl border border-blue-50 shadow-sm opacity-90 cursor-pointer hover:opacity-100 transition-all" onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} />
-                              <button className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><Upload size={14} className="text-blue-600"/></button>
-                            </div>
-                          ) : (
-                            <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full aspect-video bg-blue-50/20 rounded-xl border-2 border-dashed border-blue-200 flex flex-col items-center justify-center text-blue-300 space-y-3 hover:bg-blue-50 transition-all group">
-                              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><Plus size={20} className="text-blue-400 opacity-60"/></div>
-                              <span className="text-xs font-bold uppercase tracking-widest">Add Solution Image</span>
-                            </button>
-                          )
-                        )
-                      )}
-                    </div>
+                    )}
+
+                    {/* Add Another Reference Box */}
+                    {!isSolutionEnabled && (
+                      <button onClick={() => setIsSolutionEnabled(true)} className="w-full aspect-[3/1] bg-white rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 space-y-3 hover:border-blue-400 hover:bg-slate-50 transition-all group">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform"><ImageIcon size={18} className="text-blue-600"/></div>
+                        <p className="text-sm font-bold text-slate-900">Add another reference</p>
+                      </button>
+                    )}
                   </div>
 
-                  {/* Submit Button Section */}
-                  <div className="pt-8 border-t border-slate-100 flex flex-col items-center">
+                  {/* Submission Button */}
+                  <div className="pt-10 flex flex-col items-center">
                     {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && (
-                      <button onClick={handleProcessWithAI} className="w-full py-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-xl font-bold tracking-tight shadow-xl shadow-blue-200/50 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-[0.98] transition-all group">
+                      <button onClick={handleProcessWithAI} className="w-full py-5 bg-blue-700 text-white rounded-xl font-bold tracking-tight shadow-xl shadow-blue-200/50 flex items-center justify-center gap-3 hover:bg-blue-800 transition-all group">
                         <BrainCircuit size={20} className="group-hover:rotate-12 transition-transform" />
                         <span>Submit to Gemini 3.1 Pro</span>
                       </button>
                     )}
                     {status === 'ready' && (
-                      <button onClick={startNewQuestion} className="w-full py-4 border-2 border-dashed border-blue-200 rounded-xl text-blue-600 font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-all">
-                        <Plus size={18}/> Reset & Start New
+                      <button onClick={startNewQuestion} className="w-full py-4 border border-blue-200 rounded-xl text-blue-600 font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-all bg-white shadow-sm">
+                        <Plus size={18}/> New Analysis
                       </button>
                     )}
                     {status === 'processing' && (
@@ -593,54 +596,87 @@ export default function QuestionBreaker() {
                   </div>
                 </section>
 
-                {/* Right: Variations Viewer */}
-                <section className="w-1/2 p-10 bg-[#f5f3f4] overflow-y-auto scrollbar-hide">
-                  <div className="max-w-2xl mx-auto space-y-8">
-                    <header className="flex justify-between items-center">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Variations Pipeline</h3>
-                      <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-full shadow-sm">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                        <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Gemini 3.1 Live</span>
+                {/* Right: Output Column (40%) */}
+                <section className="w-[40%] p-10 bg-slate-50/50 border-l border-slate-200/60 overflow-y-auto scrollbar-hide">
+                  <div className="space-y-8">
+                    {/* Meta Cards (Subject & Level) */}
+                    <div className="grid grid-cols-12 gap-5">
+                      <div className="col-span-4 bg-white rounded-xl p-5 shadow-sm border border-slate-200/60">
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Subject</label>
+                        <input className="w-full border-none p-0 font-body font-bold text-slate-900 focus:ring-0 text-sm bg-transparent" type="text" value={extractSubject || 'Physics'} onChange={(e) => setExtractSubject(e.target.value)} />
                       </div>
-                    </header>
+                      <div className="col-span-8 bg-white rounded-xl p-5 shadow-sm border border-slate-200/60">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Target Level</label>
+                          <ChevronUp size={14} className="text-slate-300" />
+                        </div>
+                        <div className="flex gap-1.5 p-1 bg-slate-100 rounded-lg">
+                          {['Primary', 'Secondary', 'JC', 'University'].map((lvl) => (
+                            <button key={lvl} onClick={() => setExtractLevel(lvl)} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${extractLevel.includes(lvl) ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-slate-600'}`}>
+                              {lvl}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="space-y-6">
+                      <div className="flex justify-between items-end px-1">
+                        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-300">Variation 1 of {data.variations.length || 0}</h3>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{extractSubject || 'Physics'} • {extractLevel} Level</span>
+                      </div>
+
                       {status === 'ready' ? (
                         data.variations.map((v, i) => (
-                          <div key={i} className="bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden hover:border-blue-200 transition-all group">
-                            <div className="p-8">
-                              <div className="flex justify-between items-start mb-6">
-                                <span className="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black uppercase rounded tracking-wider">{v.category}</span>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button className="p-1.5 hover:bg-slate-100 rounded text-slate-400 transition-colors"><Copy size={14}/></button>
-                                  <button className="p-1.5 hover:bg-slate-100 rounded text-slate-400 transition-colors"><Bookmark size={14}/></button>
+                          <div key={i} className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden group hover:border-blue-200/50 transition-all">
+                            <div className="p-10 space-y-8">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded text-[10px] font-bold text-slate-600 uppercase tracking-wider border border-slate-200/50">
+                                  <span>{v.category.toUpperCase()}</span>
+                                  <ChevronDown size={12} className="text-slate-400" />
                                 </div>
                               </div>
-                              <div className="font-headline text-xl text-slate-800 leading-relaxed prose prose-slate max-w-none">
+
+                              <div className="font-headline text-xl text-slate-900 leading-relaxed prose prose-slate max-w-none">
                                 <Latex>{v.text}</Latex>
                               </div>
 
-                              <div className="mt-8 pt-6 border-t border-slate-100">
+                              <div className="pt-8 border-t border-slate-100 space-y-6">
                                 <button onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition-all">
-                                  {showSolutions[i] ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-                                  {showSolutions[i] ? 'Hide Solution' : 'Reveal Ideal Path'}
+                                  <span>Show Solution</span>
+                                  <ChevronDown size={16} className={`transition-transform duration-300 ${showSolutions[i] ? 'rotate-180' : ''}`} />
                                 </button>
+                                
                                 {showSolutions[i] && (
-                                  <div className="mt-4 p-6 bg-slate-50 rounded-xl border border-slate-100 animate-in slide-in-from-top-2 duration-300">
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Pedagogical Solution</div>
-                                    <div className="prose prose-blue text-sm leading-relaxed text-slate-600 font-body">
+                                  <div className="p-6 bg-slate-50 rounded-xl border border-slate-100 animate-in slide-in-from-top-2 duration-300">
+                                    <p className="text-[11px] text-slate-400 italic mb-4 font-serif font-medium">Pedagogical Focus: Step-by-step reasoning matching reference rigor.</p>
+                                    <div className="prose prose-blue text-sm leading-relaxed text-slate-800 font-serif border border-slate-200/60 bg-white p-5 rounded-lg">
                                       <Latex>{v.solution}</Latex>
                                     </div>
                                   </div>
                                 )}
+
+                                <div className="flex items-center justify-between pt-2">
+                                  <div className="flex gap-6">
+                                    <button className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors text-[11px] font-bold uppercase tracking-wider">
+                                      <Copy size={14}/> Copy Question
+                                    </button>
+                                    <button className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors text-[11px] font-bold uppercase tracking-wider">
+                                      <Share2 size={14}/> Share
+                                    </button>
+                                  </div>
+                                  <button className="p-2 text-slate-300 hover:text-blue-600 transition-colors">
+                                    <Bookmark size={16} />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <div className="py-20 flex flex-col items-center justify-center space-y-4 opacity-10">
-                          <Terminal size={48} className="text-slate-400" />
-                          <p className="font-black text-[10px] uppercase tracking-[0.4em]">Awaiting Analysis</p>
+                        <div className="py-24 flex flex-col items-center justify-center space-y-4 opacity-20">
+                          <Terminal size={48} className="text-slate-300" />
+                          <p className="font-bold text-[10px] uppercase tracking-[0.4em] text-slate-400">Awaiting content</p>
                         </div>
                       )}
                     </div>
