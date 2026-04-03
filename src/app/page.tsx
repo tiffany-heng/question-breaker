@@ -702,99 +702,205 @@ export default function QuestionBreaker() {
               </div>
             )
           ) : (
-            /* EXTRACTOR VIEW (Preserved & Mobile Optimized) */
-            <div className="flex flex-col md:flex-row h-full overflow-hidden">
-              <section className="w-full md:w-1/2 p-6 md:p-10 bg-white border-b md:border-b-0 md:border-r border-slate-200/50 overflow-y-auto scrollbar-hide space-y-8 md:space-y-10">
-                <header>
-                  <span className="label-style text-[10px] font-bold uppercase tracking-widest text-blue-600">Extraction Engine</span>
-                  <h2 className="font-headline text-2xl md:text-3xl font-bold text-slate-900 mt-1">Question Extractor</h2>
-                  <p className="text-sm text-slate-500 mt-2 italic font-medium">Paste lecture notes or transcripts to synthesize questions.</p>
-                </header>
-
-                <div className="space-y-6">
-                  <div className="relative group">
-                    <textarea placeholder="Paste the scholarly text here..." value={extractContent} onChange={(e) => setExtractContent(e.target.value)} className="w-full min-h-[250px] md:min-h-[350px] p-5 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all text-sm leading-relaxed resize-none font-body italic" />
-                    <div className="absolute bottom-4 right-4 flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                      <FileText size={12}/> {extractContent.split(/\s+/).filter(x => x).length} words
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subject</label>
-                      <select value={extractSubject} onChange={(e) => setExtractSubject(e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all font-bold text-xs appearance-none">
-                        <option>Literature</option><option>Quantum Ethics</option><option>History</option><option>Philosophy</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Level</label>
-                      <select value={extractLevel} onChange={(e) => { setExtractLevel(e.target.value); localStorage.setItem('qb_extract_level', e.target.value); }} className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all font-bold text-xs appearance-none">
-                        <option>Undergraduate</option><option>Post-Doctoral</option><option>Scholarly</option><option>Archival</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <button onClick={handleExtract} disabled={isExtracting || !extractContent.trim()} className={`w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all shadow-lg shadow-blue-100 ${isExtracting || !extractContent.trim() ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-700 to-blue-600 text-white active:scale-[0.98]'}`}>
-                    {isExtracting ? <Loader2 className="animate-spin" size={18}/> : <Sparkles size={18}/>}
-                    {isExtracting ? 'Analyzing Corpus...' : 'Generate Questions'}
-                  </button>
-                </div>
-              </section>
-
-              <section className="w-full md:w-1/2 p-6 md:p-10 bg-slate-50/50 overflow-y-auto scrollbar-hide">
-                <div className="max-w-2xl mx-auto space-y-10">
-                  {extractConceptTree.length > 0 && (
-                    <div className="bg-[#12141d] rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
-                      <div className="flex items-center gap-4 mb-4 border-b border-white/5 pb-3">
-                        <div className="flex gap-1.5">
-                          <div className="w-2 h-2 rounded-full bg-red-500/40"></div>
-                          <div className="w-2 h-2 rounded-full bg-green-500/40"></div>
-                        </div>
-                        <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Logic_Map.vsh</span>
-                      </div>
-                      <div className="font-mono text-[10px] leading-relaxed text-blue-200/80 space-y-2 whitespace-pre">
-                        <Latex>{extractConceptTree.join('\n')}</Latex>
-                      </div>
-                    </div>
-                  )}
-
+            /* EXTRACTOR VIEW (Refactored to match snippet) */
+            <div className="flex-1 overflow-y-auto bg-white scrollbar-hide">
+              <div className="max-w-[900px] mx-auto p-6 md:p-10 space-y-12">
+                {/* Top Section: Source Material Entry */}
+                <section className="space-y-8">
+                  <header className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600">Workspace</span>
+                    <h2 className="font-headline text-3xl font-bold text-slate-900">Source Material</h2>
+                  </header>
+                  
                   <div className="space-y-6">
-                    {extractedQuestions.length > 0 ? (
-                      <div className="relative group">
-                        <div className="bg-white rounded-3xl p-8 border border-slate-200/60 shadow-xl shadow-slate-900/5 min-h-[320px] flex flex-col justify-center text-center">
-                          <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <BrainCircuit size={24} className="text-blue-700" />
-                          </div>
-                          <div className="font-headline text-lg italic leading-relaxed text-slate-900">
-                            <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
-                          </div>
-                          <div className="mt-8 pt-6 border-t border-slate-50 flex flex-wrap justify-center gap-2">
-                            <span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-bold uppercase text-slate-500">Conceptual</span>
-                            <span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-bold uppercase text-slate-500">{extractLevel}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white p-2 rounded-full shadow-lg border border-slate-100 ring-4 ring-slate-50">
-                          <button onClick={() => setCurrentExtractIdx(prev => Math.max(0, prev - 1))} disabled={currentExtractIdx === 0} className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-50 text-slate-600 active:scale-90 disabled:opacity-30">
-                            <ChevronLeft size={20}/>
-                          </button>
-                          <div className="h-4 w-px bg-slate-200 mx-1"></div>
-                          <button onClick={() => setCurrentExtractIdx(prev => Math.min(extractedQuestions.length - 1, prev + 1))} disabled={currentExtractIdx === extractedQuestions.length - 1} className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-700 text-white active:scale-90 disabled:opacity-30">
-                            <ChevronRight size={20}/>
-                          </button>
-                        </div>
+                    <div className="relative group">
+                      <textarea 
+                        className="w-full min-h-[300px] p-6 bg-slate-50/50 border border-slate-200 focus:ring-2 focus:ring-blue-500/10 rounded-2xl font-body text-base leading-relaxed text-slate-900 transition-all resize-none shadow-sm outline-none" 
+                        placeholder="Paste your lecture notes, transcript, or study material here..."
+                        value={extractContent}
+                        onChange={(e) => setExtractContent(e.target.value)}
+                      />
+                      <div className="absolute bottom-4 right-4 flex items-center gap-2 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                        <FileText size={14} />
+                        <span>{extractContent.split(/\s+/).filter(x => x).length} words</span>
                       </div>
-                    ) : (
-                      <div className="py-20 flex flex-col items-center justify-center space-y-4 opacity-10">
-                        <Terminal size={48} className="text-slate-400" />
-                        <p className="font-black text-[10px] uppercase tracking-[0.4em]">Awaiting Content</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5 text-left">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Subject / Module</label>
+                        <input 
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 font-body text-sm font-bold focus:ring-2 focus:ring-blue-500/10 outline-none transition-all" 
+                          placeholder="e.g. Cognitive Psychology" 
+                          type="text"
+                          value={extractSubject}
+                          onChange={(e) => setExtractSubject(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5 text-left">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Target Level</label>
+                        <select 
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 font-body text-sm font-bold focus:ring-2 focus:ring-blue-500/10 outline-none transition-all appearance-none cursor-pointer"
+                          value={extractLevel}
+                          onChange={(e) => { setExtractLevel(e.target.value); localStorage.setItem('qb_extract_level', e.target.value); }}
+                        >
+                          <option>Primary School</option>
+                          <option>Secondary School</option>
+                          <option>Junior College</option>
+                          <option>University</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={handleExtract}
+                      disabled={isExtracting || !extractContent.trim()}
+                      className={`w-full py-4 bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-xl font-bold tracking-tight flex items-center justify-center gap-2 transition-all shadow-xl shadow-blue-200/50 group ${isExtracting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.98]'}`}
+                    >
+                      {isExtracting ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />}
+                      {isExtracting ? 'Analyzing Corpus...' : 'Generate Questions'}
+                    </button>
+                  </div>
+                </section>
+
+                {/* Divider */}
+                <div className="h-px bg-slate-100"></div>
+
+                {/* Bottom Section: Extracted Questions Viewer */}
+                {(extractedQuestions.length > 0 || extractConceptTree.length > 0) && (
+                  <section className="space-y-8 pb-20">
+                    <header className="space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600">Output</span>
+                      <h2 className="font-headline text-3xl font-bold text-slate-900">Extracted Questions</h2>
+                    </header>
+
+                    {/* Terminal Style Concept Breakdown */}
+                    {extractConceptTree.length > 0 && (
+                      <div className="bg-[#12141d] rounded-2xl p-8 overflow-hidden relative group shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
+                        <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                          <div className="flex gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/40"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/40"></div>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Core_Concepts_Breakdown.sh</span>
+                        </div>
+                        <div className="font-mono text-xs space-y-3 text-left leading-relaxed">
+                          {extractConceptTree.map((concept, idx) => (
+                            <div key={idx} className="flex gap-4">
+                              <span className="text-blue-400">0{idx + 1}</span>
+                              <div className="text-slate-300">
+                                <Latex>{concept}</Latex>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                  </div>
-                </div>
-              </section>
+
+                    {/* Single Question Viewer Card */}
+                    {extractedQuestions.length > 0 && (
+                      <div className="space-y-6">
+                        <div className="bg-white rounded-2xl p-10 shadow-sm border border-slate-200/60 min-h-[450px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
+                          <div className="space-y-8">
+                            <div className="flex justify-between items-center">
+                              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider rounded border border-blue-100">
+                                {extractedQuestions[currentExtractIdx].type}
+                              </span>
+                              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                Question {currentExtractIdx + 1} of {extractedQuestions.length}
+                              </span>
+                            </div>
+                            <h3 className="font-headline text-2xl font-bold text-slate-900 leading-snug">
+                              <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
+                            </h3>
+                            
+                            {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
+                              <div className="grid gap-3 py-4">
+                                {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
+                                  <div key={oIdx} className="p-4 bg-slate-50/50 rounded-xl text-base flex items-center gap-4 border border-slate-100 hover:border-blue-200 cursor-pointer transition-all">
+                                    <span className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-slate-200 text-xs font-black text-slate-400">
+                                      {String.fromCharCode(65 + oIdx)}
+                                    </span>
+                                    <span className="font-body text-slate-700 font-medium"><Latex>{opt}</Latex></span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-8 border-t border-slate-100 space-y-4">
+                            <button 
+                              onClick={() => setShowExtractedSolutions(p => ({ ...p, [currentExtractIdx]: !p[currentExtractIdx] }))}
+                              className="flex items-center gap-2 text-blue-600 font-bold text-sm group"
+                            >
+                              <ChevronDown 
+                                size={18} 
+                                className={`transition-transform duration-300 ${showExtractedSolutions[currentExtractIdx] ? 'rotate-180' : ''}`} 
+                              />
+                              {showExtractedSolutions[currentExtractIdx] ? 'Hide Solution' : 'Show Solution & Explanation'}
+                            </button>
+                            {showExtractedSolutions[currentExtractIdx] && (
+                              <div className="mt-4 p-6 bg-blue-50/30 rounded-2xl text-sm leading-relaxed text-slate-600 font-body border border-blue-100/50 animate-in zoom-in-95 duration-200">
+                                <p className="font-black text-blue-700 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Solution
+                                </p>
+                                <div className="space-y-3">
+                                  <p className="font-bold text-slate-800"><Latex>{extractedQuestions[currentExtractIdx].answer}</Latex></p>
+                                  <div className="italic prose prose-blue max-w-none"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Navigation Controls */}
+                        <div className="flex gap-4">
+                          <button 
+                            onClick={() => setCurrentExtractIdx(prev => Math.max(0, prev - 1))}
+                            disabled={currentExtractIdx === 0}
+                            className="flex-1 py-4 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                          >
+                            <ChevronLeft size={16} /> Previous
+                          </button>
+                          <button 
+                            onClick={() => setCurrentExtractIdx(prev => Math.min(extractedQuestions.length - 1, prev + 1))}
+                            disabled={currentExtractIdx === extractedQuestions.length - 1}
+                            className="flex-1 py-4 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                          >
+                            Next <ChevronRight size={16} />
+                          </button>
+                        </div>
+
+                        {/* Load More Button */}
+                        <button 
+                          onClick={handleMoreQuestions}
+                          disabled={isAddingMore}
+                          className="w-full py-4 mt-2 border-2 border-dashed border-blue-200 bg-blue-50/20 rounded-xl text-blue-600 font-bold text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {isAddingMore ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
+                          {isAddingMore ? 'Extending Analysis...' : 'Load More Questions'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Footer Info */}
+                    <div className="flex justify-between items-center px-4 py-8 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                      <div className="flex items-center gap-2">
+                        <Verified size={14} className="text-blue-500" />
+                        <span>Generated by Pedagogy AI v4.2</span>
+                      </div>
+                      <div className="flex gap-6">
+                        <button className="hover:text-blue-600 transition-colors">Export PDF</button>
+                        <button className="hover:text-blue-600 transition-colors">Sync to Notion</button>
+                      </div>
+                    </div>
+                  </section>
+                )}
+              </div>
             </div>
-          )}
+          )}}
         </main>
 
         {/* MOBILE BOTTOM NAV */}
