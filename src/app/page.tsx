@@ -900,7 +900,7 @@ export default function QuestionBreaker() {
                 )}
               </div>
             </div>
-          )}}
+          )}
         </main>
 
         {/* MOBILE BOTTOM NAV */}
