@@ -651,16 +651,16 @@ export default function QuestionBreaker() {
                         <div className="space-y-2">
                            <div className="flex justify-between items-center px-1">
                              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
-                             <button onClick={() => setIsQuestionTextMode(false)} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Image</button>
+                             <button onClick={() => { setIsQuestionTextMode(false); setData(p => ({ ...p, variations: [], questionText: '' })); saveToDb({ variations: [], questionText: '' }); }} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Image</button>
                            </div>
-                           <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))} onBlur={(e) => saveToDb({ questionText: e.target.value })} className="question-input w-full min-h-[180px] bg-slate-50/50 rounded-xl p-6 text-base border border-slate-200 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all resize-none font-body leading-relaxed" />
+                           <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => { const val = e.target.value; setData(p => ({ ...p, questionText: val, variations: val ? p.variations : [] })); }} onBlur={(e) => saveToDb({ questionText: e.target.value, variations: e.target.value ? data.variations : [] })} className="question-input w-full min-h-[180px] bg-slate-50/50 rounded-xl p-6 text-base border border-slate-200 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all resize-none font-body leading-relaxed" />
                         </div>
                       ) : (
                         data.questionImageUrl ? (
                           <div className="space-y-2">
                             <div className="flex justify-between items-center px-1">
                               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
-                              <button onClick={() => setIsQuestionTextMode(true)} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Text</button>
+                              <button onClick={() => { setIsQuestionTextMode(true); setData(p => ({ ...p, variations: [], questionImageUrl: null })); saveToDb({ variations: [], questionImageUrl: null }); }} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Text</button>
                             </div>
                             <div className="relative group">
                               <img src={data.questionImageUrl} alt="Question" className="w-full rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-95 transition-all" onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} />
@@ -672,7 +672,7 @@ export default function QuestionBreaker() {
                           <div className="space-y-2">
                             <div className="flex justify-between items-center px-1">
                               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
-                              <button onClick={() => setIsQuestionTextMode(true)} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Text</button>
+                              <button onClick={() => { setIsQuestionTextMode(true); setData(p => ({ ...p, variations: [] })); saveToDb({ variations: [] }); }} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Text</button>
                             </div>
                             <div className="relative group min-h-[240px] rounded-xl overflow-hidden bg-slate-50 flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-slate-200 transition-all hover:border-blue-400">
                               <div className="z-10 flex flex-col items-center gap-4">
