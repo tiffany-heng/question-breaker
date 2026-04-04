@@ -5,7 +5,7 @@ import {
   Columns2, Smartphone, ChevronRight, Eye, EyeOff, Loader2, X, 
   BrainCircuit, Trash2, Upload, PlusCircle, ChevronDown, ChevronUp, 
   LogOut, History, Plus, FileText, ImageIcon, Sparkles, ChevronLeft, 
-  GraduationCap, Settings, Share2, Copy, Bookmark, Verified, Terminal
+  GraduationCap, Settings, Share2, Copy, Bookmark, Verified, Terminal, Menu
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Latex from 'react-latex-next';
@@ -393,13 +393,13 @@ export default function QuestionBreaker() {
       </header>
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="hidden md:flex w-64 z-50 bg-white border-r border-slate-200/60 flex-col py-10 px-6 shrink-0 h-full">
-        <div className="mb-12 px-2">
+      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} z-50 bg-white border-r border-slate-200/60 flex-col py-10 px-6 shrink-0 h-full transition-all duration-300`}>
+        <div className="mb-12 px-2 whitespace-nowrap">
           <h1 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">Question Breaker</h1>
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1.5">Premium Pedagogy</p>
         </div>
 
-        <nav className="flex-1 space-y-2">
+        <nav className="flex-1 space-y-2 whitespace-nowrap">
           <button 
             onClick={() => setActiveMode('breaker')}
             className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'breaker' ? 'text-blue-700 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
@@ -422,7 +422,7 @@ export default function QuestionBreaker() {
           </button>
         </nav>
 
-        <div className="mt-auto pt-8 border-t border-slate-200/60 space-y-2">
+        <div className="mt-auto pt-8 border-t border-slate-200/60 space-y-2 whitespace-nowrap">
           <button onClick={() => setShowHistory(true)} className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium">
             <History size={18} className="text-slate-400" />
             <span>History</span>
@@ -437,7 +437,13 @@ export default function QuestionBreaker() {
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* DESKTOP HEADER */}
         <header className="hidden md:flex bg-[#faf9fa] justify-between items-center px-10 h-20 shrink-0">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 -ml-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-slate-100"
+            >
+              <Menu size={20} />
+            </button>
             <span className="font-serif font-bold text-blue-900 tracking-tight text-xl">
               {activeMode === 'breaker' ? 'Analysis View' : 'Workspace'}
             </span>
