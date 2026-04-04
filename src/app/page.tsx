@@ -850,7 +850,7 @@ export default function QuestionBreaker() {
                     {/* Single Question Viewer Card */}
                     {extractedQuestions.length > 0 && (
                       <div className="space-y-3">
-                        <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-slate-200/60 min-h-[280px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
+                        <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-slate-200/60 min-h-[350px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
                           <div className="space-y-4">
                             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 border-b border-slate-100 pb-3">
                               <div className="flex items-center gap-2">
@@ -876,7 +876,7 @@ export default function QuestionBreaker() {
                             </h3>
                             
                             {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 py-1">
+                              <div className="grid grid-cols-1 gap-2 py-1">
                                 {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
                                   <div key={oIdx} className="p-2.5 bg-slate-50/50 rounded-lg text-xs flex items-center gap-3 border border-slate-100 hover:border-blue-900/20 cursor-pointer transition-all hover:bg-blue-50/30 group">
                                     <span className="w-5 h-5 flex items-center justify-center rounded-full bg-white border border-slate-200 text-[9px] font-black text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900 transition-all">
