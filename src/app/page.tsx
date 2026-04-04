@@ -416,7 +416,7 @@ export default function QuestionBreaker() {
           </button>
           <h1 className="font-serif italic font-black text-blue-800 text-lg tracking-tight">Question Breaker</h1>
         </div>
-        <button className="text-blue-900 active:scale-90 transition-transform">
+        <button onClick={() => setShowSettings(true)} className="text-blue-900 active:scale-90 transition-transform">
           <Settings size={20} />
         </button>
       </header>
@@ -1087,7 +1087,7 @@ export default function QuestionBreaker() {
             <History size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">History</span>
           </button>
-          <button className="flex flex-col items-center justify-center text-slate-400 px-3 py-2 transition-all active:scale-90">
+          <button onClick={() => setShowSettings(true)} className="flex flex-col items-center justify-center text-slate-400 px-3 py-2 transition-all active:scale-90">
             <Settings size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Settings</span>
           </button>
