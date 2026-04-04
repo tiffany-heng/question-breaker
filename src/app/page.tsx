@@ -420,41 +420,41 @@ export default function QuestionBreaker() {
       </header>
 
       {/* DESKTOP SIDEBAR */}
-      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64 px-6 opacity-100 border-r border-blue-800' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} z-50 bg-blue-900 flex-col py-10 shrink-0 h-full transition-all duration-300 relative overflow-hidden shadow-xl`}>
+      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64 px-6 opacity-100 border-r border-slate-200/60' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} z-50 bg-white flex-col py-10 shrink-0 h-full transition-all duration-300 relative overflow-hidden`}>
         <div className="mb-12 px-2 whitespace-nowrap">
-          <h1 className="font-serif text-2xl font-bold text-white tracking-tight">Question Breaker</h1>
+          <h1 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">Question Breaker</h1>
         </div>
 
         <nav className="flex-1 space-y-2 whitespace-nowrap">
           <button 
             onClick={() => setActiveMode('breaker')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'breaker' ? 'text-white bg-white/10' : 'text-blue-100 hover:bg-white/5'}`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'breaker' ? 'text-blue-900 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
           >
             <div className="flex items-center gap-4">
-              <BrainCircuit size={18} className={activeMode === 'breaker' ? 'text-white' : 'text-blue-300'} />
+              <BrainCircuit size={18} className={activeMode === 'breaker' ? 'text-blue-900' : 'text-slate-400'} />
               <span>Breaker</span>
             </div>
-            {activeMode === 'breaker' && <div className="absolute right-0 h-4 w-[2.5px] bg-white rounded-full"></div>}
+            {activeMode === 'breaker' && <div className="absolute right-0 h-4 w-[2.5px] bg-blue-900 rounded-full"></div>}
           </button>
           <button 
             onClick={() => setActiveMode('extractor')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'extractor' ? 'text-white bg-white/10' : 'text-blue-100 hover:bg-white/5'}`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'extractor' ? 'text-blue-900 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
           >
             <div className="flex items-center gap-4">
-              <Sparkles size={18} className={activeMode === 'extractor' ? 'text-white' : 'text-blue-300'} />
+              <Sparkles size={18} className={activeMode === 'extractor' ? 'text-blue-900' : 'text-slate-400'} />
               <span>Extractor</span>
             </div>
-            {activeMode === 'extractor' && <div className="absolute right-0 h-4 w-[2.5px] bg-white rounded-full"></div>}
+            {activeMode === 'extractor' && <div className="absolute right-0 h-4 w-[2.5px] bg-blue-900 rounded-full"></div>}
           </button>
         </nav>
 
-        <div className="mt-auto pt-8 border-t border-white/10 space-y-2 whitespace-nowrap">
-          <button onClick={() => setShowHistory(true)} className="w-full flex items-center gap-4 px-4 py-3 text-blue-100 hover:bg-white/5 rounded-lg transition-all text-sm font-medium">
-            <History size={18} className="text-blue-300" />
+        <div className="mt-auto pt-8 border-t border-slate-200/60 space-y-2 whitespace-nowrap">
+          <button onClick={() => setShowHistory(true)} className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium">
+            <History size={18} className="text-slate-400" />
             <span>History</span>
           </button>
-          <button className="w-full flex items-center gap-4 px-4 py-3 text-blue-100 hover:bg-white/5 rounded-lg transition-all text-sm font-medium">
-            <X size={18} className="text-blue-300" />
+          <button className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium">
+            <X size={18} className="text-slate-400" />
             <span>Help</span>
           </button>
         </div>
@@ -464,22 +464,22 @@ export default function QuestionBreaker() {
         {/* Sidebar Toggle Arrow (Floating) */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-blue-900 border border-blue-800 border-l-0 rounded-r-xl items-center justify-center text-white hover:bg-blue-800 shadow-sm transition-all active:scale-95 group"
+          className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-white border border-slate-200 border-l-0 rounded-r-xl items-center justify-center text-slate-400 hover:text-blue-900 shadow-sm transition-all active:scale-95 group"
           style={{ left: sidebarOpen ? '256px' : '0px', transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
         >
           {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
 
         {/* DESKTOP HEADER */}
-        <header className="hidden md:flex bg-blue-900 justify-between items-center px-10 h-20 shrink-0 shadow-md">
+        <header className="hidden md:flex bg-[#faf9fa] justify-between items-center px-10 h-20 shrink-0 border-b border-slate-200/60">
           <div className="flex items-center gap-6">
-            <span className="font-serif font-bold text-white tracking-tight text-xl">
+            <span className="font-serif font-bold text-blue-900 tracking-tight text-xl">
               {activeMode === 'breaker' ? 'Analysis View' : 'Workspace'}
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <button onClick={() => setShowHistory(true)} className="p-2 text-blue-100 hover:text-white transition-colors"><History size={20}/></button>
-            <button className="p-2 text-blue-100 hover:text-white transition-colors"><Settings size={20}/></button>
+            <button onClick={() => setShowHistory(true)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><History size={20}/></button>
+            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><Settings size={20}/></button>
           </div>
         </header>
 
