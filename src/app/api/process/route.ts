@@ -99,10 +99,10 @@ export async function POST(req: NextRequest) {
         - Match difficulty to ${level} standards.
         - Ensure total clarity and precision in phrasing.
         - CRITICAL: Questions MUST explicitly state the required answer format where applicable (e.g., "Give your answer to 2 decimal places," "Include units in your response," or "Select exactly three options").
-        - OPTION ANALYSIS (MCQ/MRQ): For every MCQ/MRQ, the 'solution' MUST include a dedicated analysis for EVERY option. Explain why the correct ones are correct and why every incorrect one is wrong. Add DOUBLE newline characters after each option's explanation for clarity.
+        - OPTION ANALYSIS (MCQ/MRQ): For every MCQ/MRQ, the 'solution' MUST include a dedicated analysis for EVERY option. Use labels A, B, C, D to refer to the options. Explain why the correct ones are correct and why every incorrect one is wrong. Add DOUBLE newline characters (\\n\\n) after each option's explanation for clear separation.
         - SAFE LATEX: Wrap ALL mathematical expressions, formulas, and technical notations in $ delimiters (e.g., $E=mc^2$).
           - Use ONLY standard LaTeX commands. Avoid complex environments.
-          - Use \frac{a}{b} for fractions, \sqrt{x} for roots, and ^ for exponents.
+          - Use \\frac{a}{b} for fractions, \\sqrt{x} for roots, and ^ for exponents.
           - Ensure all opening $ have a corresponding closing $.
         
         OUTPUT FORMAT (STRICT JSON):
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
               "type": "mcq | mrq | short | open",
               "concept": "Name of the specific concept being tested",
               "question": "...",
-              "options": ["i. ...", "ii. ...", "iii. ...", "iv. ..."], // ONLY for mcq/mrq
+              "options": ["Option text content ONLY", "Option text content ONLY", "Option text content ONLY", "Option text content ONLY"], // DO NOT add 'i.' or 'A.' labels inside the text
               "answer": "...",
               "solution": "..."
             }
@@ -200,13 +200,13 @@ export async function POST(req: NextRequest) {
       
       3. QUESTION FORMATTING (STRICT):
          - Start every question with a type label: [MCQ - Choose only one], [MRQ - Select all that apply], or [SRQ - Short Response Question].
-         - For MCQs/MRQs, put every option on a NEW LINE starting with "i.", "ii.", "iii.", "iv.".
+         - For MCQs/MRQs, put every option on a NEW LINE. DO NOT include internal labels like "i." or "A.". Just provide the option text.
          - Use DOUBLE newline characters between options.
          - Ensure math is in LaTeX.
       
       4. SOLUTION RIGOR (STRICT):
          - Provide a detailed step-by-step solution matching the reference rigor.
-         - FOR MCQ/MRQ: You MUST explicitly address EVERY option. Explain why the correct ones are correct AND why every incorrect one is wrong. Use DOUBLE newlines between each option's analysis.
+         - FOR MCQ/MRQ: You MUST explicitly address EVERY option using labels A, B, C, D. Explain why the correct ones are correct AND why every incorrect one is wrong. Use DOUBLE newlines (\\n\\n) between each option's analysis.
       
       OUTPUT: JSON array of objects with keys "category", "text", "solution".
     `;

@@ -901,13 +901,13 @@ export default function QuestionBreaker() {
                           {showExtractedSolutions[currentExtractIdx] ? 'Hide Solution' : 'Show Solution & Explanation'}
                         </button>
                         {showExtractedSolutions[currentExtractIdx] && (
-                          <div className="mt-1 p-3 bg-blue-50/30 rounded-lg text-xs leading-relaxed text-slate-600 font-body border border-blue-100/50 animate-in zoom-in-95 duration-200">
-                            <p className="font-black text-blue-900 text-[10px] uppercase tracking-widest mb-1 flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span> Solution
+                          <div className="mt-2 p-4 bg-blue-50/30 rounded-lg text-sm leading-relaxed text-slate-700 font-body border border-blue-100/50 animate-in zoom-in-95 duration-200">
+                            <p className="font-black text-blue-900 text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span> Detailed Analysis
                             </p>
-                            <div className="space-y-1">
-                              <p className="font-bold text-slate-800"><Latex>{extractedQuestions[currentExtractIdx].answer}</Latex></p>
-                              <div className="italic prose prose-blue max-w-none text-xs"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
+                            <div className="space-y-3">
+                              <p className="font-bold text-slate-900 text-base border-b border-blue-100/50 pb-2 mb-2">Correct Answer: <Latex>{extractedQuestions[currentExtractIdx].answer}</Latex></p>
+                              <div className="prose prose-blue max-w-none text-sm whitespace-pre-wrap text-slate-600"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
                             </div>
                           </div>
                         )}
