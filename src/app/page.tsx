@@ -850,65 +850,65 @@ export default function QuestionBreaker() {
 
                     {/* Single Question Viewer Card */}
                     {extractedQuestions.length > 0 && (
-                      <div className="space-y-6">
-                        <div className="bg-white rounded-2xl p-8 md:p-10 shadow-sm border border-slate-200/60 min-h-[400px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
-                          <div className="space-y-8">
-                            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-slate-100 pb-6">
-                              <div className="flex items-center gap-3">
-                                <span className="px-3 py-1 bg-blue-900 text-white text-xs font-black uppercase tracking-wider rounded">
+                      <div className="space-y-4">
+                        <div className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-200/60 min-h-[320px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
+                          <div className="space-y-6">
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 border-b border-slate-100 pb-4">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 bg-blue-900 text-white text-[10px] font-black uppercase tracking-wider rounded">
                                   {extractedQuestions[currentExtractIdx].type}
                                 </span>
-                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-3">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-2">
                                   Question {currentExtractIdx + 1} of {extractedQuestions.length}
                                 </span>
                               </div>
                               {extractedQuestions[currentExtractIdx].concept && (
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Concept:</span>
-                                  <span className="text-xs font-black uppercase tracking-widest text-blue-900 bg-blue-50 px-2 py-1 rounded">
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Concept:</span>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-900 bg-blue-50 px-2 py-0.5 rounded">
                                     <Latex>{extractedQuestions[currentExtractIdx].concept}</Latex>
                                   </span>
                                 </div>
                               )}
                             </div>
                             
-                            <h3 className="font-headline text-xl md:text-2xl font-medium text-slate-900 leading-tight">
+                            <h3 className="font-headline text-lg md:text-xl font-medium text-slate-900 leading-snug">
                               <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
                             </h3>
                             
                             {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
-                              <div className="grid gap-3 py-4">
+                              <div className="grid gap-2 py-2">
                                 {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
-                                  <div key={oIdx} className="p-4 bg-slate-50/50 rounded-2xl text-base flex items-center gap-4 border border-slate-100 hover:border-blue-900/20 cursor-pointer transition-all hover:bg-blue-50/30 group">
-                                    <span className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-slate-200 text-xs font-black text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900 transition-all">
+                                  <div key={oIdx} className="p-3 bg-slate-50/50 rounded-xl text-sm flex items-center gap-3 border border-slate-100 hover:border-blue-900/20 cursor-pointer transition-all hover:bg-blue-50/30 group">
+                                    <span className="w-6 h-6 flex items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-black text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900 transition-all">
                                       {String.fromCharCode(65 + oIdx)}
                                     </span>
-                                    <span className="font-body text-slate-700 font-medium text-sm md:text-base"><Latex>{opt}</Latex></span>
+                                    <span className="font-body text-slate-700 font-medium text-xs md:text-sm"><Latex>{opt}</Latex></span>
                                   </div>
                                 ))}
                               </div>
                             )}
                           </div>
 
-                          <div className="pt-8 border-t border-slate-100 space-y-4">
+                          <div className="pt-4 border-t border-slate-100 space-y-2">
                             <button 
                               onClick={() => setShowExtractedSolutions(p => ({ ...p, [currentExtractIdx]: !p[currentExtractIdx] }))}
-                              className="flex items-center gap-2 text-blue-900 font-bold text-sm group"
+                              className="flex items-center gap-2 text-blue-900 font-bold text-xs group"
                             >
                               <ChevronDown 
-                                size={18} 
+                                size={16} 
                                 className={`transition-transform duration-300 ${showExtractedSolutions[currentExtractIdx] ? 'rotate-180' : ''}`} 
                               />
                               {showExtractedSolutions[currentExtractIdx] ? 'Hide Solution' : 'Show Solution & Explanation'}
                             </button>
                             {showExtractedSolutions[currentExtractIdx] && (
-                              <div className="mt-4 p-6 bg-blue-50/30 rounded-2xl text-sm leading-relaxed text-slate-600 font-body border border-blue-100/50 animate-in zoom-in-95 duration-200">
-                                <p className="font-black text-blue-900 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <div className="mt-2 p-4 bg-blue-50/30 rounded-xl text-xs leading-relaxed text-slate-600 font-body border border-blue-100/50 animate-in zoom-in-95 duration-200">
+                                <p className="font-black text-blue-900 text-[9px] uppercase tracking-widest mb-2 flex items-center gap-2">
                                   <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span> Solution
                                 </p>
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                   <p className="font-bold text-slate-800"><Latex>{extractedQuestions[currentExtractIdx].answer}</Latex></p>
-                                  <div className="italic prose prose-blue max-w-none"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
+                                  <div className="italic prose prose-blue max-w-none text-xs"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
                                 </div>
                               </div>
                             )}
@@ -916,20 +916,20 @@ export default function QuestionBreaker() {
                         </div>
 
                         {/* Navigation Controls */}
-                        <div className="flex gap-4">
+                        <div className="flex gap-3">
                           <button 
                             onClick={() => setCurrentExtractIdx(prev => Math.max(0, prev - 1))}
                             disabled={currentExtractIdx === 0}
-                            className="flex-1 py-4 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                            className="flex-1 py-3 bg-white border border-slate-200 rounded-lg font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                           >
-                            <ChevronLeft size={16} /> Previous
+                            <ChevronLeft size={14} /> Previous
                           </button>
                           <button 
                             onClick={() => setCurrentExtractIdx(prev => Math.min(extractedQuestions.length - 1, prev + 1))}
                             disabled={currentExtractIdx === extractedQuestions.length - 1}
-                            className="flex-1 py-4 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                            className="flex-1 py-3 bg-white border border-slate-200 rounded-lg font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                           >
-                            Next <ChevronRight size={16} />
+                            Next <ChevronRight size={14} />
                           </button>
                         </div>
 
@@ -937,9 +937,9 @@ export default function QuestionBreaker() {
                         <button 
                           onClick={handleMoreQuestions}
                           disabled={isAddingMore}
-                          className="w-full py-4 mt-2 border-2 border-dashed border-blue-200 bg-blue-50/20 rounded-xl text-blue-900 font-bold text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          className="w-full py-3 border-2 border-dashed border-blue-200 bg-blue-50/20 rounded-lg text-blue-900 font-bold text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
-                          {isAddingMore ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
+                          {isAddingMore ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
                           {isAddingMore ? 'Extending Analysis...' : 'Load More Questions'}
                         </button>
                       </div>
