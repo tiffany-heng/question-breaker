@@ -633,14 +633,14 @@ export default function QuestionBreaker() {
                 )}
 
                 {/* Right: Input Column (Source Materials) */}
-                <section className={`hidden md:flex ${inputSidebarOpen ? 'md:w-1/2 px-6 md:px-8 lg:px-12 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto scrollbar-hide space-y-8 md:space-y-12`}>
-                  <header className="md:block overflow-hidden">
+                <section className={`hidden md:flex ${inputSidebarOpen ? 'md:w-1/2 px-6 md:px-10 lg:px-14 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto space-y-8 md:space-y-12`}>
+                  <header className="md:block">
                     <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-900">Current Module</span>
                     <h2 className="font-headline text-2xl md:text-3xl font-bold text-slate-900 mt-1 md:mt-0">Source Materials</h2>
                     <p className="text-sm text-slate-500 mt-2 font-medium italic md:not-italic">Upload the question and the ideal solution path.</p>
                   </header>
 
-                  <div className="space-y-10 overflow-hidden">
+                  <div className="space-y-10">
                     {/* The Question Input Area */}
                     <div className="space-y-4">
                       {isQuestionTextMode ? (
@@ -670,7 +670,7 @@ export default function QuestionBreaker() {
                               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
                               <button onClick={() => setIsQuestionTextMode(true)} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Text</button>
                             </div>
-                            <div className="relative group aspect-[4/3] md:aspect-video rounded-xl overflow-hidden bg-slate-50 flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-slate-200 transition-all hover:border-blue-400">
+                            <div className="relative group min-h-[240px] rounded-xl overflow-hidden bg-slate-50 flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-slate-200 transition-all hover:border-blue-400">
                               <div className="z-10 flex flex-col items-center gap-4">
                                 <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-16 h-16 rounded-full bg-blue-900 flex items-center justify-center text-white shadow-xl ring-8 ring-blue-100/50 active:scale-95 transition-transform">
                                   <ImageIcon size={28} />
