@@ -471,15 +471,15 @@ export default function QuestionBreaker() {
         </button>
 
         {/* DESKTOP HEADER */}
-        <header className="hidden md:flex bg-[#faf9fa] justify-between items-center px-10 h-20 shrink-0">
+        <header className="hidden md:flex bg-blue-900 justify-between items-center px-10 h-20 shrink-0 shadow-md">
           <div className="flex items-center gap-6">
-            <span className="font-serif font-bold text-blue-900 tracking-tight text-xl">
+            <span className="font-serif font-bold text-white tracking-tight text-xl">
               {activeMode === 'breaker' ? 'Analysis View' : 'Workspace'}
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <button onClick={() => setShowHistory(true)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><History size={20}/></button>
-            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><Settings size={20}/></button>
+            <button onClick={() => setShowHistory(true)} className="p-2 text-blue-100 hover:text-white transition-colors"><History size={20}/></button>
+            <button className="p-2 text-blue-100 hover:text-white transition-colors"><Settings size={20}/></button>
           </div>
         </header>
 
