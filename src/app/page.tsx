@@ -114,21 +114,40 @@ export default function QuestionBreaker() {
     bootstrap();
 
     const handleGlobalPaste = (e: ClipboardEvent) => {
+      // If we're already in a textarea, let default behavior happen
+      if (document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT') return;
+
       const items = e.clipboardData?.items;
       if (!items) return;
+
       for (let i = 0; i < items.length; i++) {
+        // Handle Images
         if (items[i].type.indexOf('image') !== -1) {
           const file = items[i].getAsFile();
           if (file) {
             e.preventDefault();
             let targetType = activeUploadType;
-            if (document.activeElement?.classList.contains('question-input')) targetType = 'question';
-            else if (document.activeElement?.classList.contains('solution-input')) targetType = 'solution';
+            // Heuristic: if we're in breaker mode, paste to question usually
             setActiveUploadType(targetType);
             setRawFile(file);
             const reader = new FileReader();
             reader.onload = () => { setImgSrc(reader.result?.toString() || ''); setStatus('cropping'); };
             reader.readAsDataURL(file);
+            return;
+          }
+        }
+        // Handle Text
+        if (items[i].type === 'text/plain') {
+          const text = e.clipboardData?.getData('text/plain');
+          if (text) {
+            e.preventDefault();
+            setIsQuestionTextMode(true);
+            setData(p => {
+              const newData = { ...p, questionText: text };
+              saveToDb(newData);
+              return newData;
+            });
+            return;
           }
         }
       }
@@ -393,7 +412,15 @@ export default function QuestionBreaker() {
       </header>
 
       {/* DESKTOP SIDEBAR */}
-      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} z-50 bg-white border-r border-slate-200/60 flex-col py-10 px-6 shrink-0 h-full transition-all duration-300`}>
+      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} z-50 bg-white border-r border-slate-200/60 flex-col py-10 px-6 shrink-0 h-full transition-all duration-300 relative group`}>
+        {/* Toggle Button (Floating) */}
+        <button 
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className={`absolute top-1/2 -translate-y-1/2 ${sidebarOpen ? '-right-4' : 'left-4'} z-[60] w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-blue-600 shadow-md transition-all active:scale-90`}
+        >
+          {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+        </button>
+
         <div className="mb-12 px-2 whitespace-nowrap">
           <h1 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">Question Breaker</h1>
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1.5">Premium Pedagogy</p>
@@ -438,12 +465,14 @@ export default function QuestionBreaker() {
         {/* DESKTOP HEADER */}
         <header className="hidden md:flex bg-[#faf9fa] justify-between items-center px-10 h-20 shrink-0">
           <div className="flex items-center gap-6">
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 -ml-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-slate-100"
-            >
-              <Menu size={20} />
-            </button>
+            {!sidebarOpen && (
+              <button 
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 -ml-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-slate-100"
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
             <span className="font-serif font-bold text-blue-900 tracking-tight text-xl">
               {activeMode === 'breaker' ? 'Analysis View' : 'Workspace'}
             </span>
