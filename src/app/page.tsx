@@ -1083,13 +1083,13 @@ export default function QuestionBreaker() {
             <Sparkles size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Extractor</span>
           </button>
+          <button onClick={startNewQuestion} className="flex flex-col items-center justify-center text-blue-900 px-3 py-2 transition-all active:scale-90">
+            <PlusCircle size={24} className="text-blue-900" />
+            <span className="text-[10px] font-black uppercase tracking-widest mt-1">New</span>
+          </button>
           <button onClick={() => setShowHistory(true)} className="flex flex-col items-center justify-center text-slate-400 px-3 py-2 transition-all active:scale-90">
             <History size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">History</span>
-          </button>
-          <button onClick={() => setShowSettings(true)} className="flex flex-col items-center justify-center text-slate-400 px-3 py-2 transition-all active:scale-90">
-            <Settings size={20} />
-            <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Settings</span>
           </button>
         </nav>
       </div>
