@@ -62,6 +62,7 @@ export default function QuestionBreaker() {
   const [showHistory, setShowHistory] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [breakerTab, setBreakerTab] = useState<'input' | 'output'>('input');
   
   const [data, setData] = useState<QuestionData>({ 
     questionImageUrl: null, 
@@ -619,12 +620,12 @@ export default function QuestionBreaker() {
                 <h2 className="font-bold uppercase tracking-widest text-xs flex items-center gap-2 text-slate-400"><History size={16}/> Session History</h2>
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={18}/></button>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 space-y-3">
-                <button onClick={startNewQuestion} className="w-full p-4 border-2 border-dashed border-blue-100 rounded-xl text-blue-900 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-50 transition-all mb-4">
+              <div className="flex-1 overflow-y-auto p-6 pb-24 space-y-3">
+                <button onClick={() => { startNewQuestion(); setShowHistory(false); }} className="w-full p-4 border-2 border-dashed border-blue-100 rounded-xl text-blue-900 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-50 transition-all mb-4">
                   <Plus size={16}/> New Question
                 </button>
                 {history.map((item, idx) => (
-                  <button key={idx} onClick={() => loadFromHistory(item)} className={`w-full text-left p-4 rounded-xl border transition-all ${data.id === item.id ? 'border-blue-600 bg-blue-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
+                  <button key={idx} onClick={() => loadFromHistory(item)} className={`w-full text-left p-4 rounded-xl border transition-all ${data.id === item.id ? 'border-blue-900 bg-blue-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] font-bold uppercase text-slate-400">{item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'}</span>
                       {item.status === 'ready' && <div className="w-1 h-1 rounded-full bg-green-500"></div>}
