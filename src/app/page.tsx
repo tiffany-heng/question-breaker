@@ -459,7 +459,7 @@ export default function QuestionBreaker() {
         {/* Sidebar Toggle Arrow (Floating) */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-white border border-slate-200 border-l-0 rounded-r-xl items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm transition-all active:scale-95 group"
+          className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-blue-900 border border-blue-800 border-l-0 rounded-r-xl items-center justify-center text-white hover:bg-blue-800 shadow-sm transition-all active:scale-95 group"
           style={{ left: sidebarOpen ? '256px' : '0px', transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
         >
           {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
@@ -624,7 +624,7 @@ export default function QuestionBreaker() {
                 {(status === 'ready' || status === 'processing' || data.questionText || data.questionImageUrl) && (
                   <button 
                     onClick={() => setInputSidebarOpen(!inputSidebarOpen)}
-                    className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-white border border-slate-200 border-r-0 rounded-l-xl items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm transition-all active:scale-95 group"
+                    className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-blue-900 border border-blue-800 border-r-0 rounded-l-xl items-center justify-center text-white hover:bg-blue-800 shadow-sm transition-all active:scale-95 group"
                     style={{ right: inputSidebarOpen ? '50%' : '0px', transition: 'right 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
                   >
                     {inputSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -832,7 +832,7 @@ export default function QuestionBreaker() {
                         <div className="font-mono text-xs space-y-3 text-left leading-relaxed">
                           {extractConceptTree.map((concept, idx) => (
                             <div key={idx} className="flex gap-4">
-                              <span className="text-blue-400">0{idx + 1}</span>
+                              <span className="text-blue-400">$</span>
                               <div className="text-slate-300">
                                 <Latex>{concept}</Latex>
                               </div>
