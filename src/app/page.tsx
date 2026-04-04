@@ -312,13 +312,14 @@ export default function QuestionBreaker() {
     if (!session) await supabase.auth.signInAnonymously();
     const payload: any = {
       room_id: roomId,
-      question_image_url: updates.questionImageUrl ?? data.questionImageUrl,
-      question_text: updates.questionText ?? data.questionText,
-      solution_image_url: updates.solutionImageUrl ?? data.solutionImageUrl,
-      solution_text: updates.solutionText ?? data.solutionText,
+      question_image_url: updates.hasOwnProperty('questionImageUrl') ? updates.questionImageUrl : data.questionImageUrl,
+      question_text: updates.hasOwnProperty('questionText') ? updates.questionText : data.questionText,
+      solution_image_url: updates.hasOwnProperty('solutionImageUrl') ? updates.solutionImageUrl : data.solutionImageUrl,
+      solution_text: updates.hasOwnProperty('solutionText') ? updates.solutionText : data.solutionText,
+      variations: updates.hasOwnProperty('variations') ? updates.variations : data.variations,
       is_question_text_mode: isQuestionTextMode,
       is_solution_text_mode: isSolutionTextMode,
-      status: newStatus || 'waiting'
+      status: newStatus || updates.status || data.status || 'waiting'
     };
     try {
       if (data.id) { 
@@ -659,7 +660,7 @@ export default function QuestionBreaker() {
                             </div>
                             <div className="relative group">
                               <img src={data.questionImageUrl} alt="Question" className="w-full rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-95 transition-all" onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} />
-                              <button onClick={(e) => { e.stopPropagation(); setData(p => ({ ...p, questionImageUrl: null })); saveToDb({ questionImageUrl: null }); }} className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100"><Trash2 size={16} className="text-red-500"/></button>
+                              <button onClick={(e) => { e.stopPropagation(); const updates = { questionImageUrl: null, variations: [], status: 'waiting' }; setData(p => ({ ...p, ...updates })); saveToDb(updates); }} className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100"><Trash2 size={16} className="text-red-500"/></button>
                             </div>
                           </div>
                         ) : (
@@ -707,7 +708,7 @@ export default function QuestionBreaker() {
                             data.solutionImageUrl ? (
                               <div className="relative">
                                 <img src={data.solutionImageUrl} alt="Solution" className="w-full rounded-xl border border-slate-200 shadow-sm" onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} />
-                                <button onClick={() => { setData(p => ({ ...p, solutionImageUrl: null })); saveToDb({ solutionImageUrl: null }); }} className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur rounded-full text-red-500 shadow-sm"><Trash2 size={14}/></button>
+                                <button onClick={() => { const updates = { solutionImageUrl: null, variations: [], status: 'waiting' }; setData(p => ({ ...p, ...updates })); saveToDb(updates); }} className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur rounded-full text-red-500 shadow-sm"><Trash2 size={14}/></button>
                               </div>
                             ) : (
                               <button onClick={() => { setActiveUploadType('solution'); fileInputRef.current?.click(); }} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 uppercase tracking-widest hover:border-blue-400 transition-all">Add Solution Image</button>
