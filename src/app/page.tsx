@@ -552,9 +552,9 @@ export default function QuestionBreaker() {
                 <section className="flex-1 p-6 md:p-8 lg:p-12 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-200/60 overflow-y-auto scrollbar-hide transition-all duration-300">
                   <div className="space-y-8">
                     <div className="space-y-6">
-                      <div className="flex items-center gap-3 border-b border-slate-200/30 pb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Active Variations</span>
-                        {status === 'ready' && <span className="bg-blue-100 text-blue-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{data.variations.length} Generated</span>}
+                      <div className="flex items-center justify-between border-b border-slate-200/30 pb-4">
+                        <h3 className="text-xl font-headline font-bold tracking-tight text-slate-900">Active Variations</h3>
+                        {status === 'ready' && <span className="bg-blue-900 text-white px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">{data.variations.length} Generated</span>}
                       </div>
 
                       {status === 'ready' ? (
@@ -565,10 +565,10 @@ export default function QuestionBreaker() {
                             const cleanText = labelMatch ? v.text.replace(/^\[.*?\]/, '').trim() : v.text;
                             
                             return (
-                              <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${expandedVariations[i] ? 'border-blue-200 ring-1 ring-blue-50' : 'border-slate-200/60'}`}>
+                              <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${expandedVariations[i] ? 'border-blue-900/20 ring-1 ring-blue-900/10' : 'border-slate-200/60'}`}>
                                 <div className="p-5 flex justify-between items-start cursor-pointer hover:bg-slate-50/50 transition-colors rounded-t-2xl" onClick={() => setExpandedVariations(p => ({ ...p, [i]: !p[i] }))}>
                                   <div className="space-y-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">{v.category}</span>
+                                    <span className="text-xs font-black uppercase tracking-widest text-blue-900">{v.category}</span>
                                     <h3 className="font-headline font-bold text-lg text-slate-900 line-clamp-1">{label}</h3>
                                   </div>
                                   <button className="text-slate-400">
@@ -761,20 +761,20 @@ export default function QuestionBreaker() {
                 {/* Top Section: Source Material Entry */}
                 <section className="space-y-4">
                   <header className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-900">Workspace</span>
-                    <h2 className="font-headline text-2xl font-bold text-slate-900">Source Material</h2>
+                    <span className="text-sm font-bold uppercase tracking-widest text-blue-900">Workspace</span>
+                    <h2 className="font-headline text-3xl font-bold text-slate-900">Source Material</h2>
                   </header>
                   
                   <div className="space-y-4">
                     <div className="relative group">
                       <textarea 
-                        className="w-full min-h-[200px] p-4 bg-slate-50/50 border border-slate-200 focus:ring-2 focus:ring-blue-500/10 rounded-xl font-body text-sm leading-relaxed text-slate-900 transition-all resize-none shadow-sm outline-none" 
+                        className="w-full min-h-[200px] p-4 bg-slate-50/50 border border-slate-200 focus:ring-2 focus:ring-blue-500/10 rounded-xl font-body text-base md:text-lg leading-relaxed text-slate-900 transition-all resize-none shadow-sm outline-none" 
                         placeholder="Paste your lecture notes, transcript, or study material here..."
                         value={extractContent}
                         onChange={(e) => setExtractContent(e.target.value)}
                       />
-                      <div className="absolute bottom-3 right-4 flex items-center gap-2 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
-                        <FileText size={12} />
+                      <div className="absolute bottom-3 right-4 flex items-center gap-2 text-slate-400 font-bold text-sm uppercase tracking-wider">
+                        <FileText size={14} />
                         <span>{extractContent.split(/\s+/).filter(x => x).length} words</span>
                       </div>
                     </div>
