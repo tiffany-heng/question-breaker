@@ -607,7 +607,8 @@ export default function QuestionBreaker() {
                                 </div>
                               </div>
                             </div>
-                          ))}
+                          );
+                        })}
                         </div>
                       ) : (
                         <div className="py-24 flex flex-col items-center justify-center space-y-4 opacity-20">
@@ -865,7 +866,7 @@ export default function QuestionBreaker() {
                               )}
                             </div>
                             
-                            <h3 className="font-headline text-3xl md:text-4xl font-bold text-slate-900 leading-tight">
+                            <h3 className="font-headline text-3xl md:text-4xl font-medium text-slate-900 leading-tight">
                               <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
                             </h3>
                             
