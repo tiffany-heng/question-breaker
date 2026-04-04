@@ -490,7 +490,7 @@ export default function QuestionBreaker() {
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto scrollbar-hide md:overflow-hidden pb-24 md:pb-0">
+        <main className="flex-1 flex flex-col overflow-y-auto scrollbar-hide md:overflow-hidden pb-24 md:pb-0">
           {activeMode === 'breaker' ? (
             !roomId ? (
               /* JOIN SCREEN */
