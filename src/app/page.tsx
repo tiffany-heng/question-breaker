@@ -464,22 +464,22 @@ export default function QuestionBreaker() {
         {/* Sidebar Toggle Arrow (Floating) */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-white border border-slate-200 border-l-0 rounded-r-xl items-center justify-center text-slate-400 hover:text-blue-900 shadow-sm transition-all active:scale-95 group"
+          className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-blue-900 border border-blue-800 border-l-0 rounded-r-xl items-center justify-center text-white hover:bg-blue-800 shadow-sm transition-all active:scale-95 group"
           style={{ left: sidebarOpen ? '256px' : '0px', transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
         >
           {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
 
         {/* DESKTOP HEADER */}
-        <header className="hidden md:flex bg-[#faf9fa] justify-between items-center px-10 h-20 shrink-0 border-b border-slate-200/60">
+        <header className="hidden md:flex bg-blue-900 justify-between items-center px-10 h-20 shrink-0 shadow-md">
           <div className="flex items-center gap-6">
-            <span className="font-serif font-bold text-blue-900 tracking-tight text-xl">
+            <span className="font-serif font-bold text-white tracking-tight text-xl">
               {activeMode === 'breaker' ? 'Analysis View' : 'Workspace'}
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <button onClick={() => setShowHistory(true)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><History size={20}/></button>
-            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors"><Settings size={20}/></button>
+            <button onClick={() => setShowHistory(true)} className="p-2 text-blue-100 hover:text-white transition-colors"><History size={20}/></button>
+            <button className="p-2 text-blue-100 hover:text-white transition-colors"><Settings size={20}/></button>
           </div>
         </header>
 
