@@ -634,13 +634,13 @@ export default function QuestionBreaker() {
 
                 {/* Right: Input Column (Source Materials) */}
                 <section className={`hidden md:flex ${inputSidebarOpen ? 'md:w-1/2 px-6 md:px-8 lg:px-12 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto scrollbar-hide space-y-8 md:space-y-12`}>
-                  <header className="md:block whitespace-nowrap overflow-hidden">
+                  <header className="md:block overflow-hidden">
                     <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-900">Current Module</span>
                     <h2 className="font-headline text-2xl md:text-3xl font-bold text-slate-900 mt-1 md:mt-0">Source Materials</h2>
                     <p className="text-sm text-slate-500 mt-2 font-medium italic md:not-italic">Upload the question and the ideal solution path.</p>
                   </header>
 
-                  <div className="space-y-10 whitespace-nowrap overflow-hidden">
+                  <div className="space-y-10 overflow-hidden">
                     {/* The Question Input Area */}
                     <div className="space-y-4">
                       {isQuestionTextMode ? (
@@ -664,41 +664,46 @@ export default function QuestionBreaker() {
                             </div>
                           </div>
                         ) : (
-                          /* CIRCULAR CAPTURE ZONE (MOBILE SNIPPET) */
-                          <div className="relative group aspect-[4/3] md:aspect-auto md:h-64 rounded-full md:rounded-xl overflow-hidden bg-slate-50 flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-slate-200 transition-all hover:border-blue-400">
-                            <div className="z-10 flex flex-col items-center gap-4">
-                              <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-16 h-16 rounded-full bg-blue-900 flex items-center justify-center text-white shadow-xl ring-8 ring-blue-100/50 active:scale-95 transition-transform">
-                                <ImageIcon size={28} />
-                              </button>
-                              <div className="text-center">
-                                <p className="font-headline font-bold text-lg text-slate-900">Capture Question</p>
-                                <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Scan or upload document</p>
-                              </div>
+                          /* CAPTURE ZONE */
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center px-1">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
+                              <button onClick={() => setIsQuestionTextMode(true)} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Text</button>
                             </div>
-                            <div className="absolute bottom-6 flex gap-3 z-10 md:hidden">
-                              <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="bg-white py-2 px-4 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-600 shadow-sm border border-slate-100 flex items-center gap-2 active:scale-95 transition-all">
-                                <FileText size={14}/> Upload PDF
-                              </button>
-                              <button onClick={() => setIsQuestionTextMode(true)} className="bg-white py-2 px-4 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-600 shadow-sm border border-slate-100 flex items-center gap-2 active:scale-95 transition-all">
-                                <Plus size={14}/> Type Text
-                              </button>
+                            <div className="relative group aspect-[4/3] md:aspect-video rounded-xl overflow-hidden bg-slate-50 flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-slate-200 transition-all hover:border-blue-400">
+                              <div className="z-10 flex flex-col items-center gap-4">
+                                <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-16 h-16 rounded-full bg-blue-900 flex items-center justify-center text-white shadow-xl ring-8 ring-blue-100/50 active:scale-95 transition-transform">
+                                  <ImageIcon size={28} />
+                                </button>
+                                <div className="text-center px-4">
+                                  <p className="font-headline font-bold text-lg text-slate-900">Capture Question</p>
+                                  <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Scan or upload document</p>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )
                       )}
                     </div>
 
-                    {/* Solution Toggle Area (MOBILE SNIPPET) */}
+                    {/* Solution Toggle Area */}
                     <div className="bg-slate-50 rounded-2xl p-6 space-y-4 border border-slate-200/60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Verified size={18} className="text-blue-900" />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Solution Reference</span>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" checked={isSolutionEnabled} onChange={(e) => setIsSolutionEnabled(e.target.checked)} className="sr-only peer" />
-                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-900"></div>
-                        </label>
+                        <div className="flex items-center gap-4">
+                          {isSolutionEnabled && (
+                            <button onClick={() => setIsSolutionTextMode(!isSolutionTextMode)} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">
+                              {isSolutionTextMode ? 'Switch to Image' : 'Switch to Text'}
+                            </button>
+                          )}
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={isSolutionEnabled} onChange={(e) => setIsSolutionEnabled(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-900"></div>
+                          </label>
+                        </div>
                       </div>
                       {isSolutionEnabled && (
                         <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
