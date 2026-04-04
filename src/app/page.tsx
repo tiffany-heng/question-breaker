@@ -412,15 +412,7 @@ export default function QuestionBreaker() {
       </header>
 
       {/* DESKTOP SIDEBAR */}
-      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} z-50 bg-white border-r border-slate-200/60 flex-col py-10 px-6 shrink-0 h-full transition-all duration-300 relative group`}>
-        {/* Toggle Button (Floating) */}
-        <button 
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`absolute top-1/2 -translate-y-1/2 ${sidebarOpen ? '-right-4' : 'left-4'} z-[60] w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-blue-600 shadow-md transition-all active:scale-90`}
-        >
-          {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-        </button>
-
+      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64 px-6 opacity-100 border-r border-slate-200/60' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} z-50 bg-white flex-col py-10 shrink-0 h-full transition-all duration-300 relative overflow-hidden`}>
         <div className="mb-12 px-2 whitespace-nowrap">
           <h1 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">Question Breaker</h1>
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1.5">Premium Pedagogy</p>
@@ -461,18 +453,19 @@ export default function QuestionBreaker() {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* Sidebar Toggle Arrow (Floating) */}
+        <button 
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-white border border-slate-200 border-l-0 rounded-r-xl items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm transition-all active:scale-95 group"
+          style={{ left: sidebarOpen ? '256px' : '0px', transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+        >
+          {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        </button>
+
         {/* DESKTOP HEADER */}
         <header className="hidden md:flex bg-[#faf9fa] justify-between items-center px-10 h-20 shrink-0">
           <div className="flex items-center gap-6">
-            {!sidebarOpen && (
-              <button 
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 -ml-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-slate-100"
-              >
-                <ChevronRight size={20} />
-              </button>
-            )}
             <span className="font-serif font-bold text-blue-900 tracking-tight text-xl">
               {activeMode === 'breaker' ? 'Analysis View' : 'Workspace'}
             </span>
@@ -548,7 +541,78 @@ export default function QuestionBreaker() {
             ) : (
               /* BREAKER VIEW (Mobile Optimized) */
               <div className="flex flex-col md:flex-row h-full overflow-hidden">
-                {/* Left: Input Column */}
+                {/* Left: Output Column (Variations) */}
+                <section className="w-full md:w-[45%] lg:w-[40%] p-6 md:p-8 lg:p-12 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-200/60 overflow-y-auto scrollbar-hide">
+                  <div className="space-y-8">
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 border-b border-slate-200/30 pb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Active Variations</span>
+                        {status === 'ready' && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{data.variations.length} Generated</span>}
+                      </div>
+
+                      {status === 'ready' ? (
+                        <div className="space-y-4">
+                          {data.variations.map((v, i) => (
+                            <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${expandedVariations[i] ? 'border-blue-200 ring-1 ring-blue-50' : 'border-slate-200/60'}`}>
+                              <div className="p-5 flex justify-between items-start cursor-pointer hover:bg-slate-50/50 transition-colors rounded-t-2xl" onClick={() => setExpandedVariations(p => ({ ...p, [i]: !p[i] }))}>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">{v.category}</span>
+                                  <h3 className="font-headline font-bold text-lg text-slate-900 line-clamp-1">Analysis Path {i + 1}</h3>
+                                </div>
+                                <button className="text-slate-400">
+                                  {expandedVariations[i] ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                                </button>
+                              </div>
+                              
+                              <div className={`px-5 pb-5 space-y-4 transition-all ${expandedVariations[i] ? 'block' : 'hidden'}`}>
+                                <div className="font-body text-sm leading-relaxed text-slate-700 prose prose-blue max-w-none whitespace-pre-wrap">
+                                  <Latex>{v.text}</Latex>
+                                </div>
+                                
+                                <div className="pt-4 border-t border-slate-50 space-y-3">
+                                  {!showSolutions[i] ? (
+                                    <button 
+                                      onClick={() => setShowSolutions(p => ({ ...p, [i]: true }))}
+                                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-blue-100 transition-all"
+                                    >
+                                      <Eye size={14}/> Show Solution
+                                    </button>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Step-by-Step Solution</span>
+                                        <button onClick={() => setShowSolutions(p => ({ ...p, [i]: false }))} className="text-slate-400 hover:text-slate-600"><EyeOff size={14}/></button>
+                                      </div>
+                                      <div className="p-4 bg-slate-50 rounded-xl text-xs italic font-serif leading-relaxed text-slate-600 border border-slate-100 whitespace-pre-wrap">
+                                        <Latex>{v.solution}</Latex>
+                                      </div>
+                                    </>
+                                  )}
+                                  
+                                  <div className="flex gap-4 pt-2">
+                                    <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 active:scale-95 transition-all">
+                                      Copy Question <ChevronRight size={12}/>
+                                    </button>
+                                    <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                      Share <Share2 size={12}/>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-24 flex flex-col items-center justify-center space-y-4 opacity-20">
+                          <Terminal size={48} className="text-slate-300" />
+                          <p className="font-bold text-[10px] uppercase tracking-[0.4em] text-slate-400">Awaiting content</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
+
+                {/* Right: Input Column (Source Materials) */}
                 <section className="w-full md:w-[55%] lg:w-[60%] p-6 md:p-8 lg:p-12 bg-white md:overflow-y-auto scrollbar-hide space-y-8 md:space-y-12">
                   <header className="md:block">
                     <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-600">Current Module</span>
@@ -657,77 +721,6 @@ export default function QuestionBreaker() {
                         <span className="text-[10px] uppercase tracking-[0.2em] opacity-60 font-black">{aiStep}</span>
                       </div>
                     )}
-                  </div>
-                </section>
-
-                {/* Right: Output Column */}
-                <section className="w-full md:w-[45%] lg:w-[40%] p-6 md:p-8 lg:p-12 bg-slate-50/50 border-t md:border-t-0 md:border-l border-slate-200/60 overflow-y-auto scrollbar-hide">
-                  <div className="space-y-8">
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-3 border-b border-slate-200/30 pb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Active Variations</span>
-                        {status === 'ready' && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{data.variations.length} Generated</span>}
-                      </div>
-
-                      {status === 'ready' ? (
-                        <div className="space-y-4">
-                          {data.variations.map((v, i) => (
-                            <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${expandedVariations[i] ? 'border-blue-200 ring-1 ring-blue-50' : 'border-slate-200/60'}`}>
-                              <div className="p-5 flex justify-between items-start cursor-pointer hover:bg-slate-50/50 transition-colors rounded-t-2xl" onClick={() => setExpandedVariations(p => ({ ...p, [i]: !p[i] }))}>
-                                <div className="space-y-1">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">{v.category}</span>
-                                  <h3 className="font-headline font-bold text-lg text-slate-900 line-clamp-1">Analysis Path {i + 1}</h3>
-                                </div>
-                                <button className="text-slate-400">
-                                  {expandedVariations[i] ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
-                                </button>
-                              </div>
-                              
-                              <div className={`px-5 pb-5 space-y-4 transition-all ${expandedVariations[i] ? 'block' : 'hidden'}`}>
-                                <div className="font-body text-sm leading-relaxed text-slate-700 prose prose-blue max-w-none whitespace-pre-wrap">
-                                  <Latex>{v.text}</Latex>
-                                </div>
-                                
-                                <div className="pt-4 border-t border-slate-50 space-y-3">
-                                  {!showSolutions[i] ? (
-                                    <button 
-                                      onClick={() => setShowSolutions(p => ({ ...p, [i]: true }))}
-                                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-blue-100 transition-all"
-                                    >
-                                      <Eye size={14}/> Show Solution
-                                    </button>
-                                  ) : (
-                                    <>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Step-by-Step Solution</span>
-                                        <button onClick={() => setShowSolutions(p => ({ ...p, [i]: false }))} className="text-slate-400 hover:text-slate-600"><EyeOff size={14}/></button>
-                                      </div>
-                                      <div className="p-4 bg-slate-50 rounded-xl text-xs italic font-serif leading-relaxed text-slate-600 border border-slate-100 whitespace-pre-wrap">
-                                        <Latex>{v.solution}</Latex>
-                                      </div>
-                                    </>
-                                  )}
-                                  
-                                  <div className="flex gap-4 pt-2">
-                                    <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 active:scale-95 transition-all">
-                                      Copy Question <ChevronRight size={12}/>
-                                    </button>
-                                    <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                      Share <Share2 size={12}/>
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="py-24 flex flex-col items-center justify-center space-y-4 opacity-20">
-                          <Terminal size={48} className="text-slate-300" />
-                          <p className="font-bold text-[10px] uppercase tracking-[0.4em] text-slate-400">Awaiting content</p>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </section>
               </div>
