@@ -622,7 +622,7 @@ export default function QuestionBreaker() {
                 </section>
 
                 {/* Input Sidebar Toggle Arrow (Floating) */}
-                {(status === 'ready' || status === 'processing' || data.questionText || data.questionImageUrl) && (
+                {roomId && (
                   <button 
                     onClick={() => setInputSidebarOpen(!inputSidebarOpen)}
                     className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-blue-900 border border-blue-800 border-r-0 rounded-l-xl items-center justify-center text-white hover:bg-blue-800 shadow-sm transition-all active:scale-95 group"
