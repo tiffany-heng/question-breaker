@@ -60,6 +60,7 @@ export default function QuestionBreaker() {
   const [showSolutions, setShowSolutions] = useState<Record<number, boolean>>({});
   const [history, setHistory] = useState<QuestionData[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   
   const [data, setData] = useState<QuestionData>({ 
     questionImageUrl: null, 
@@ -453,12 +454,74 @@ export default function QuestionBreaker() {
             <History size={18} className="text-slate-400" />
             <span>History</span>
           </button>
-          <button className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium">
+          <button onClick={() => setShowHelp(true)} className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium">
             <X size={18} className="text-slate-400" />
             <span>Help</span>
           </button>
         </div>
       </aside>
+
+      {/* HELP MODAL */}
+      {showHelp && (
+        <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-blue-900 p-8 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <BrainCircuit size={24} />
+                <h2 className="text-xl font-serif font-bold tracking-tight">How to use Question Breaker</h2>
+              </div>
+              <button onClick={() => setShowHelp(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-8 md:p-10 space-y-8 overflow-y-auto max-h-[70vh]">
+              <section className="space-y-3">
+                <h3 className="font-bold text-blue-900 uppercase tracking-widest text-xs flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span> Mode 1: Breaker
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Best for deep-diving into a single tough question. Upload an image or paste the text, optionally add your own solution, and get 4 unique AI-generated variations (Conceptual Flip, Edge Case, etc.) to test your understanding.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="font-bold text-blue-900 uppercase tracking-widest text-xs flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span> Mode 2: Extractor
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Upload lecture notes or transcripts to generate a set of practice questions automatically. It identifies core concepts and creates targeted MCQs, MRQs, and Short Response questions based on your material.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="font-bold text-blue-900 uppercase tracking-widest text-xs flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span> Pro Tips
+                </h3>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <li className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                    <Smartphone size={18} className="text-blue-900 shrink-0" />
+                    <span className="text-xs text-slate-600"><strong>Realtime Sync:</strong> Pair your phone and laptop using the 6-digit code to snap photos on mobile and see them instantly on your desktop.</span>
+                  </li>
+                  <li className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                    <Copy size={18} className="text-blue-900 shrink-0" />
+                    <span className="text-xs text-slate-600"><strong>Global Paste:</strong> You can paste images or text directly anywhere on the page to quickly start an analysis.</span>
+                  </li>
+                </ul>
+              </section>
+            </div>
+            
+            <div className="p-8 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => setShowHelp(false)}
+                className="px-8 py-3 bg-blue-900 text-white rounded-full font-bold text-sm shadow-lg shadow-blue-900/20 hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                Got it, thanks!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Sidebar Toggle Arrow (Floating) */}
