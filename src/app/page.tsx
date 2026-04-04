@@ -628,27 +628,6 @@ export default function QuestionBreaker() {
                 {/* Right: Output Column */}
                 <section className="w-full md:w-[45%] lg:w-[40%] p-6 md:p-8 lg:p-12 bg-slate-50/50 border-t md:border-t-0 md:border-l border-slate-200/60 overflow-y-auto scrollbar-hide">
                   <div className="space-y-8">
-                    {/* Meta Cards (Desktop Only Labels) */}
-                    <div className="hidden md:grid grid-cols-12 gap-5">
-                      <div className="col-span-4 bg-white rounded-xl p-5 shadow-sm border border-slate-200/60">
-                        <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Subject</label>
-                        <input className="w-full border-none p-0 font-body font-bold text-slate-900 focus:ring-0 text-sm bg-transparent" type="text" value={extractSubject || 'Physics'} onChange={(e) => setExtractSubject(e.target.value)} />
-                      </div>
-                      <div className="col-span-8 bg-white rounded-xl p-5 shadow-sm border border-slate-200/60">
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Target Level</label>
-                          <ChevronUp size={14} className="text-slate-300" />
-                        </div>
-                        <div className="flex gap-1.5 p-1 bg-slate-100 rounded-lg">
-                          {['Primary', 'Secondary', 'JC', 'University'].map((lvl) => (
-                            <button key={lvl} onClick={() => setExtractLevel(lvl)} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${extractLevel.includes(lvl) ? 'bg-white shadow-sm text-blue-700' : 'text-slate-400 hover:text-slate-600'}`}>
-                              {lvl}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="space-y-6">
                       <div className="flex items-center gap-3 border-b border-slate-200/30 pb-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Active Variations</span>
