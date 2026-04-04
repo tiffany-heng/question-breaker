@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
       2. GENERATE 4 variations: Conceptual Flip, Constraint Change, Edge Case, Hybrid Problem, or Abstraction Jump.
       
       3. QUESTION FORMATTING (STRICT):
-         - Start every question with a type label: [MCQ - Choose only one], [MRQ - Select all that apply], or [SRQ - Short Response].
+         - Start every question with a type label: [MCQ - Choose only one], [MRQ - Select all that apply], or [SRQ - Short Response Question].
          - For MCQs/MRQs, put every option on a NEW LINE starting with "i.", "ii.", "iii.", "iv.".
          - Use DOUBLE newline characters between options.
          - Ensure math is in LaTeX.

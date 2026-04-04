@@ -553,22 +553,27 @@ export default function QuestionBreaker() {
 
                       {status === 'ready' ? (
                         <div className="space-y-4">
-                          {data.variations.map((v, i) => (
-                            <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${expandedVariations[i] ? 'border-blue-200 ring-1 ring-blue-50' : 'border-slate-200/60'}`}>
-                              <div className="p-5 flex justify-between items-start cursor-pointer hover:bg-slate-50/50 transition-colors rounded-t-2xl" onClick={() => setExpandedVariations(p => ({ ...p, [i]: !p[i] }))}>
-                                <div className="space-y-1">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">{v.category}</span>
-                                  <h3 className="font-headline font-bold text-lg text-slate-900 line-clamp-1">Analysis Path {i + 1}</h3>
+                          {data.variations.map((v, i) => {
+                            const labelMatch = v.text.match(/^\[(.*?)\]/);
+                            const label = labelMatch ? labelMatch[1] : `Analysis Path ${i + 1}`;
+                            const cleanText = labelMatch ? v.text.replace(/^\[.*?\]/, '').trim() : v.text;
+                            
+                            return (
+                              <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${expandedVariations[i] ? 'border-blue-200 ring-1 ring-blue-50' : 'border-slate-200/60'}`}>
+                                <div className="p-5 flex justify-between items-start cursor-pointer hover:bg-slate-50/50 transition-colors rounded-t-2xl" onClick={() => setExpandedVariations(p => ({ ...p, [i]: !p[i] }))}>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">{v.category}</span>
+                                    <h3 className="font-headline font-bold text-lg text-slate-900 line-clamp-1">{label}</h3>
+                                  </div>
+                                  <button className="text-slate-400">
+                                    {expandedVariations[i] ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                                  </button>
                                 </div>
-                                <button className="text-slate-400">
-                                  {expandedVariations[i] ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
-                                </button>
-                              </div>
-                              
-                              <div className={`px-5 pb-5 space-y-4 transition-all ${expandedVariations[i] ? 'block' : 'hidden'}`}>
-                                <div className="font-body text-sm leading-relaxed text-slate-700 prose prose-blue max-w-none whitespace-pre-wrap">
-                                  <Latex>{v.text}</Latex>
-                                </div>
+                                
+                                <div className={`px-5 pb-5 space-y-4 transition-all ${expandedVariations[i] ? 'block' : 'hidden'}`}>
+                                  <div className="font-body text-sm leading-relaxed text-slate-700 prose prose-blue max-w-none whitespace-pre-wrap">
+                                    <Latex>{cleanText}</Latex>
+                                  </div>
                                 
                                 <div className="pt-4 border-t border-slate-50 space-y-3">
                                   {!showSolutions[i] ? (
