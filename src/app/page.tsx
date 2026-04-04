@@ -182,6 +182,17 @@ export default function QuestionBreaker() {
   };
 
   const syncLatestData = async (rId: string) => {
+    // 1. Fetch room data for Extractor sync
+    const { data: room } = await supabase.from('rooms').select('*').eq('id', rId).single();
+    if (room && room.latest_extraction) {
+      setExtractedQuestions(room.latest_extraction.questions || []);
+      setExtractConceptTree(room.latest_extraction.conceptTree || []);
+      setExtractContent(room.latest_extraction.content || '');
+      setExtractSubject(room.latest_extraction.subject || '');
+      setExtractLevel(room.latest_extraction.level || 'Secondary School');
+    }
+
+    // 2. Fetch latest Breaker question
     const { data: qData } = await supabase.from('questions').select('*').eq('room_id', rId).order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (qData) updateLocalState(qData);
   };
@@ -263,11 +274,25 @@ export default function QuestionBreaker() {
   };
 
   const loadFromHistory = (item: QuestionData) => {
-    setData(item);
-    setIsQuestionTextMode(!!item.isQuestionTextMode);
-    setIsSolutionTextMode(!!item.isSolutionTextMode);
-    setIsSolutionEnabled(!!(item.solutionImageUrl || item.solutionText));
-    setStatus(item.status as SessionStatus || 'ready');
+    if (item.status === 'extracted') {
+      setActiveMode('extractor');
+      setExtractContent(item.questionText || '');
+      try {
+        const parsed = JSON.parse(item.extractedText);
+        setExtractedQuestions(parsed.questions || []);
+        setExtractConceptTree(parsed.conceptTree || []);
+      } catch (e) {
+        setExtractedQuestions([]);
+        setExtractConceptTree([]);
+      }
+    } else {
+      setActiveMode('breaker');
+      setData(item);
+      setIsQuestionTextMode(!!item.isQuestionTextMode);
+      setIsSolutionTextMode(!!item.isSolutionTextMode);
+      setIsSolutionEnabled(!!(item.solutionImageUrl || item.solutionText));
+      setStatus(item.status as SessionStatus || 'ready');
+    }
     setShowHistory(false);
   };
 
@@ -288,6 +313,15 @@ export default function QuestionBreaker() {
         setExtractedQuestions(result.questions);
         setExtractConceptTree(result.conceptTree || []);
         setAllConceptsTested(!!result.allConceptsTested);
+        
+        // Save to DB for history sync
+        await saveToDb({
+          questionText: extractContent,
+          extractedText: JSON.stringify({ questions: result.questions, conceptTree: result.conceptTree }),
+          status: 'extracted'
+        }, 'extracted');
+        
+        fetchHistory(roomId!);
         setShowExtractionToast(true);
         setTimeout(() => setShowExtractionToast(false), 3000);
       } else if (result.error) alert("Extraction Error: " + result.error);
@@ -324,9 +358,10 @@ export default function QuestionBreaker() {
       question_text: updates.hasOwnProperty('questionText') ? updates.questionText : data.questionText,
       solution_image_url: updates.hasOwnProperty('solutionImageUrl') ? updates.solutionImageUrl : data.solutionImageUrl,
       solution_text: updates.hasOwnProperty('solutionText') ? updates.solutionText : data.solutionText,
+      extracted_text: updates.hasOwnProperty('extractedText') ? updates.extractedText : data.extractedText,
       variations: updates.hasOwnProperty('variations') ? updates.variations : data.variations,
-      is_question_text_mode: isQuestionTextMode,
-      is_solution_text_mode: isSolutionTextMode,
+      is_question_text_mode: updates.hasOwnProperty('isQuestionTextMode') ? updates.isQuestionTextMode : isQuestionTextMode,
+      is_solution_text_mode: updates.hasOwnProperty('isSolutionTextMode') ? updates.isSolutionTextMode : isSolutionTextMode,
       status: newStatus || updates.status || data.status || 'waiting'
     };
     try {
@@ -626,9 +661,14 @@ export default function QuestionBreaker() {
                 </button>
                 {history.map((item, idx) => (
                   <button key={idx} onClick={() => loadFromHistory(item)} className={`w-full text-left p-4 rounded-xl border transition-all ${data.id === item.id ? 'border-blue-900 bg-blue-50/30' : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-bold uppercase text-slate-400">{item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'}</span>
-                      {item.status === 'ready' && <div className="w-1 h-1 rounded-full bg-green-500"></div>}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase text-slate-400">{item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'}</span>
+                        {item.status === 'ready' && <div className="w-1 h-1 rounded-full bg-green-500"></div>}
+                      </div>
+                      {item.status === 'extracted' && (
+                        <span className="text-[8px] font-black bg-blue-900 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">Extraction</span>
+                      )}
                     </div>
                     <p className="text-xs font-medium text-slate-600 line-clamp-2">{item.questionText || (item.questionImageUrl ? '[Question Image]' : 'Empty Question')}</p>
                   </button>
@@ -1075,20 +1115,20 @@ export default function QuestionBreaker() {
         </main>
 
         {/* MOBILE BOTTOM NAV */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-safe pt-2 bg-white/90 backdrop-blur-md border-t border-slate-200/20 z-50">
-          <button onClick={() => setActiveMode('breaker')} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'breaker' ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
+        <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-safe pt-2 bg-white/90 backdrop-blur-md border-t border-slate-200/20 z-[160]">
+          <button onClick={() => { setActiveMode('breaker'); setShowHistory(false); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'breaker' && !showHistory && !showSettings ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
             <BrainCircuit size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Breaker</span>
           </button>
-          <button onClick={() => setActiveMode('extractor')} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'extractor' ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
+          <button onClick={() => { setActiveMode('extractor'); setShowHistory(false); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'extractor' && !showHistory && !showSettings ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
             <Sparkles size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Extractor</span>
           </button>
-          <button onClick={startNewQuestion} className="flex flex-col items-center justify-center text-blue-900 px-3 py-2 transition-all active:scale-90">
+          <button onClick={() => { startNewQuestion(); setShowHistory(false); setShowSettings(false); }} className="flex flex-col items-center justify-center text-blue-900 px-3 py-2 transition-all active:scale-90">
             <PlusCircle size={24} className="text-blue-900" />
             <span className="text-[10px] font-black uppercase tracking-widest mt-1">New</span>
           </button>
-          <button onClick={() => setShowHistory(true)} className="flex flex-col items-center justify-center text-slate-400 px-3 py-2 transition-all active:scale-90">
+          <button onClick={() => { setShowHistory(true); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${showHistory ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
             <History size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">History</span>
           </button>
