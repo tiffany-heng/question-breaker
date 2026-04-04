@@ -61,6 +61,7 @@ export default function QuestionBreaker() {
   const [history, setHistory] = useState<QuestionData[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   const [data, setData] = useState<QuestionData>({ 
     questionImageUrl: null, 
@@ -542,9 +543,57 @@ export default function QuestionBreaker() {
           </div>
           <div className="flex items-center gap-6">
             <button onClick={() => setShowHistory(true)} className="p-2 text-blue-100 hover:text-white transition-colors"><History size={20}/></button>
-            <button className="p-2 text-blue-100 hover:text-white transition-colors"><Settings size={20}/></button>
+            <button onClick={() => setShowSettings(true)} className="p-2 text-blue-100 hover:text-white transition-colors"><Settings size={20}/></button>
           </div>
         </header>
+
+        {/* SETTINGS MODAL */}
+        {showSettings && (
+          <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="bg-blue-900 p-6 text-white flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <Settings size={20} />
+                  <h2 className="font-bold tracking-tight">Session Settings</h2>
+                </div>
+                <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              
+              <div className="p-8 space-y-8">
+                <div className="space-y-3 text-center">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Current Pairing Code</span>
+                  <div className="bg-slate-50 border-2 border-dashed border-blue-100 p-6 rounded-2xl">
+                    <span className="text-4xl font-mono font-black text-blue-900 tracking-widest">{pairingCode || '------'}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed px-4">
+                    Share this code with your other devices to sync questions and analysis in realtime.
+                  </p>
+                </div>
+
+                <div className="pt-4 space-y-3">
+                  <button 
+                    onClick={resetSession}
+                    className="w-full py-4 bg-red-50 text-red-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-all"
+                  >
+                    <LogOut size={18} />
+                    <span>Exit Current Session</span>
+                  </button>
+                  <p className="text-[10px] text-center text-slate-400 font-medium">
+                    This will clear your local room data and start a fresh session.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="p-6 border-t border-slate-50 flex justify-center">
+                <button onClick={() => setShowSettings(false)} className="text-xs font-bold text-slate-400 hover:text-blue-900 transition-colors uppercase tracking-widest">
+                  Close Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* CROP OVERLAY */}
         {status === 'cropping' && imgSrc && (
