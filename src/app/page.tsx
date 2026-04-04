@@ -543,7 +543,7 @@ export default function QuestionBreaker() {
               /* BREAKER VIEW (Mobile Optimized) */
               <div className="flex flex-col md:flex-row h-full overflow-hidden relative">
                 {/* Left: Output Column (Variations) */}
-                <section className="flex-1 p-6 md:p-8 lg:p-12 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-200/60 overflow-y-auto scrollbar-hide">
+                <section className="flex-1 p-6 md:p-8 lg:p-12 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-200/60 overflow-y-auto scrollbar-hide transition-all duration-300">
                   <div className="space-y-8">
                     <div className="space-y-6">
                       <div className="flex items-center gap-3 border-b border-slate-200/30 pb-2">
@@ -618,21 +618,21 @@ export default function QuestionBreaker() {
                   <button 
                     onClick={() => setInputSidebarOpen(!inputSidebarOpen)}
                     className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-white border border-slate-200 border-r-0 rounded-l-xl items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm transition-all active:scale-95 group"
-                    style={{ right: inputSidebarOpen ? '40%' : '0px', transition: 'right 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+                    style={{ right: inputSidebarOpen ? '384px' : '0px', transition: 'right 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
                   >
                     {inputSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
                   </button>
                 )}
 
                 {/* Right: Input Column (Source Materials) */}
-                <section className={`w-full md:w-[55%] lg:w-[40%] p-6 md:p-8 lg:p-12 bg-white md:overflow-y-auto scrollbar-hide space-y-8 md:space-y-12 transition-all duration-300 ${inputSidebarOpen ? 'opacity-100' : 'w-0 p-0 opacity-0 pointer-events-none'}`}>
-                  <header className="md:block whitespace-nowrap">
+                <section className={`hidden md:flex ${inputSidebarOpen ? 'w-96 px-6 md:px-8 lg:px-12 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto scrollbar-hide space-y-8 md:space-y-12`}>
+                  <header className="md:block whitespace-nowrap overflow-hidden">
                     <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-600">Current Module</span>
                     <h2 className="font-headline text-2xl md:text-3xl font-bold text-slate-900 mt-1 md:mt-0">Source Materials</h2>
                     <p className="text-sm text-slate-500 mt-2 font-medium italic md:not-italic">Upload the question and the ideal solution path.</p>
                   </header>
 
-                  <div className="space-y-10">
+                  <div className="space-y-10 whitespace-nowrap overflow-hidden">
                     {/* The Question Input Area */}
                     <div className="space-y-4">
                       {isQuestionTextMode ? (
