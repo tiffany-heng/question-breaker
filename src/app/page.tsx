@@ -20,6 +20,7 @@ type AppMode = 'breaker' | 'extractor';
 
 interface ExtractedQuestion {
   type: string;
+  concept?: string;
   question: string;
   options?: string[];
   answer: string;
@@ -843,25 +844,36 @@ export default function QuestionBreaker() {
                     {/* Single Question Viewer Card */}
                     {extractedQuestions.length > 0 && (
                       <div className="space-y-6">
-                        <div className="bg-white rounded-2xl p-10 shadow-sm border border-slate-200/60 min-h-[450px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
-                          <div className="space-y-8">
-                            <div className="flex justify-between items-center">
-                              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider rounded border border-blue-100">
-                                {extractedQuestions[currentExtractIdx].type}
-                              </span>
-                              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                                Question {currentExtractIdx + 1} of {extractedQuestions.length}
-                              </span>
+                        <div className="bg-white rounded-2xl p-8 md:p-12 shadow-sm border border-slate-200/60 min-h-[calc(100vh-18rem)] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
+                          <div className="space-y-10">
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-slate-100 pb-6">
+                              <div className="flex items-center gap-3">
+                                <span className="px-3 py-1 bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider rounded">
+                                  {extractedQuestions[currentExtractIdx].type}
+                                </span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-3">
+                                  Question {currentExtractIdx + 1} of {extractedQuestions.length}
+                                </span>
+                              </div>
+                              {extractedQuestions[currentExtractIdx].concept && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Concept:</span>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                    <Latex>{extractedQuestions[currentExtractIdx].concept}</Latex>
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                            <h3 className="font-headline text-2xl font-bold text-slate-900 leading-snug">
+                            
+                            <h3 className="font-headline text-3xl md:text-4xl font-bold text-slate-900 leading-tight">
                               <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
                             </h3>
                             
                             {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
-                              <div className="grid gap-3 py-4">
+                              <div className="grid gap-4 py-6">
                                 {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
-                                  <div key={oIdx} className="p-4 bg-slate-50/50 rounded-xl text-base flex items-center gap-4 border border-slate-100 hover:border-blue-200 cursor-pointer transition-all">
-                                    <span className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-slate-200 text-xs font-black text-slate-400">
+                                  <div key={oIdx} className="p-5 bg-slate-50/50 rounded-2xl text-lg flex items-center gap-5 border border-slate-100 hover:border-blue-200 cursor-pointer transition-all hover:bg-blue-50/30 group">
+                                    <span className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-200 text-sm font-black text-slate-400 group-hover:text-blue-600 group-hover:border-blue-600 transition-all">
                                       {String.fromCharCode(65 + oIdx)}
                                     </span>
                                     <span className="font-body text-slate-700 font-medium"><Latex>{opt}</Latex></span>

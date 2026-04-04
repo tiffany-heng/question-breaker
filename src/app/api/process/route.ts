@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
           "questions": [
             {
               "type": "mcq | mrq | short | open",
+              "concept": "Name of the specific concept being tested",
               "question": "...",
               "options": ["i. ...", "ii. ...", "iii. ...", "iv. ..."], // ONLY for mcq/mrq
               "answer": "...",
