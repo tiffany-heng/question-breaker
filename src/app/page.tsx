@@ -821,129 +821,128 @@ export default function QuestionBreaker() {
 
                 {/* Bottom Section: Extracted Questions Viewer */}
                 {(extractedQuestions.length > 0 || extractConceptTree.length > 0) && (
-                  <section className="space-y-4 pb-10">
-                    {/* Terminal Style Concept Breakdown */}
-                    {extractConceptTree.length > 0 && (
-                      <div className="bg-[#12141d] rounded-xl p-4 overflow-hidden relative group shadow-xl animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 blur-3xl rounded-full"></div>
-                        <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-2">
-                          <div className="flex gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-red-500/40"></div>
-                            <div className="w-2 h-2 rounded-full bg-yellow-500/40"></div>
-                            <div className="w-2 h-2 rounded-full bg-green-500/40"></div>
-                          </div>
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Core_Concepts_Breakdown.sh</span>
-                        </div>
-                        <div className="font-mono text-[10px] space-y-1.5 text-left leading-relaxed">
-                          {extractConceptTree.map((concept, idx) => (
-                            <div key={idx} className="flex gap-3">
-                              <span className="text-blue-400">$</span>
-                              <div className="text-slate-300">
-                                <Latex>{concept}</Latex>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                <section className="space-y-4 pb-10">
+                {/* Terminal Style Concept Breakdown */}
+                {extractConceptTree.length > 0 && (
+                  <div className="bg-[#12141d] rounded-xl p-4 overflow-hidden relative group shadow-xl animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 blur-3xl rounded-full"></div>
+                    <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-2">
+                      <div className="flex gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-red-500/40"></div>
+                        <div className="w-2 h-2 rounded-full bg-yellow-500/40"></div>
+                        <div className="w-2 h-2 rounded-full bg-green-500/40"></div>
                       </div>
-                    )}
+                      <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Core_Concepts_Breakdown.sh</span>
+                    </div>
+                    <div className="font-mono text-xs space-y-1.5 text-left leading-relaxed">
+                      {extractConceptTree.map((concept, idx) => (
+                        <div key={idx} className="flex gap-3">
+                          <span className="text-blue-400">$</span>
+                          <div className="text-slate-300">
+                            <Latex>{concept}</Latex>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                    {/* Single Question Viewer Card */}
-                    {extractedQuestions.length > 0 && (
-                      <div className="space-y-3">
-                        <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-slate-200/60 min-h-[350px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
-                          <div className="space-y-4">
-                            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 border-b border-slate-100 pb-3">
-                              <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 bg-blue-900 text-white text-[9px] font-black uppercase tracking-wider rounded">
-                                  {extractedQuestions[currentExtractIdx].type}
-                                </span>
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-2">
-                                  Question {currentExtractIdx + 1} of {extractedQuestions.length}
-                                </span>
-                              </div>
-                              {extractedQuestions[currentExtractIdx].concept && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Concept:</span>
-                                  <span className="text-[9px] font-black uppercase tracking-widest text-blue-900 bg-blue-50 px-2 py-0.5 rounded">
-                                    <Latex>{extractedQuestions[currentExtractIdx].concept}</Latex>
-                                  </span>
-                                </div>
-                              )}
+                {/* Single Question Viewer Card */}
+                {extractedQuestions.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-slate-200/60 min-h-[350px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
+                      <div className="space-y-4">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 border-b border-slate-100 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-blue-900 text-white text-[10px] font-black uppercase tracking-wider rounded">
+                              {extractedQuestions[currentExtractIdx].type}
+                            </span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-2">
+                              Question {currentExtractIdx + 1} of {extractedQuestions.length}
+                            </span>
+                          </div>
+                          {extractedQuestions[currentExtractIdx].concept && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Concept:</span>
+                              <span className="text-xs font-black uppercase tracking-widest text-blue-900 bg-blue-50 px-2 py-0.5 rounded">
+                                <Latex>{extractedQuestions[currentExtractIdx].concept}</Latex>
+                              </span>
                             </div>
-                            
-                            <h3 className="font-headline text-base md:text-lg font-medium text-slate-900 leading-snug">
-                              <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
-                            </h3>
-                            
-                            {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
-                              <div className="grid grid-cols-1 gap-2 py-1">
-                                {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
-                                  <div key={oIdx} className="p-2.5 bg-slate-50/50 rounded-lg text-xs flex items-center gap-3 border border-slate-100 hover:border-blue-900/20 cursor-pointer transition-all hover:bg-blue-50/30 group">
-                                    <span className="w-5 h-5 flex items-center justify-center rounded-full bg-white border border-slate-200 text-[9px] font-black text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900 transition-all">
-                                      {String.fromCharCode(65 + oIdx)}
-                                    </span>
-                                    <span className="font-body text-slate-700 font-medium"><Latex>{opt}</Latex></span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="pt-3 border-t border-slate-100 space-y-2">
-                            <button 
-                              onClick={() => setShowExtractedSolutions(p => ({ ...p, [currentExtractIdx]: !p[currentExtractIdx] }))}
-                              className="flex items-center gap-2 text-blue-900 font-bold text-[10px] group"
-                            >
-                              <ChevronDown 
-                                size={14} 
-                                className={`transition-transform duration-300 ${showExtractedSolutions[currentExtractIdx] ? 'rotate-180' : ''}`} 
-                              />
-                              {showExtractedSolutions[currentExtractIdx] ? 'Hide Solution' : 'Show Solution & Explanation'}
-                            </button>
-                            {showExtractedSolutions[currentExtractIdx] && (
-                              <div className="mt-1 p-3 bg-blue-50/30 rounded-lg text-[11px] leading-relaxed text-slate-600 font-body border border-blue-100/50 animate-in zoom-in-95 duration-200">
-                                <p className="font-black text-blue-900 text-[8px] uppercase tracking-widest mb-1 flex items-center gap-2">
-                                  <span className="w-1 h-1 rounded-full bg-blue-900"></span> Solution
-                                </p>
-                                <div className="space-y-1">
-                                  <p className="font-bold text-slate-800"><Latex>{extractedQuestions[currentExtractIdx].answer}</Latex></p>
-                                  <div className="italic prose prose-blue max-w-none text-[11px]"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
 
-                        {/* Navigation Controls */}
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => setCurrentExtractIdx(prev => Math.max(0, prev - 1))}
-                            disabled={currentExtractIdx === 0}
-                            className="flex-1 py-2 bg-white border border-slate-200 rounded-lg font-bold text-[9px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
-                          >
-                            <ChevronLeft size={12} /> Previous
-                          </button>
-                          <button 
-                            onClick={() => setCurrentExtractIdx(prev => Math.min(extractedQuestions.length - 1, prev + 1))}
-                            disabled={currentExtractIdx === extractedQuestions.length - 1}
-                            className="flex-1 py-2 bg-white border border-slate-200 rounded-lg font-bold text-[9px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
-                          >
-                            Next <ChevronRight size={12} />
-                          </button>
-                        </div>
+                        <h3 className="font-headline text-base md:text-lg font-medium text-slate-900 leading-snug">
+                          <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
+                        </h3>
 
-                        {/* Load More Button */}
+                        {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
+                          <div className="grid grid-cols-1 gap-2 py-1">
+                            {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
+                              <div key={oIdx} className="p-2.5 bg-slate-50/50 rounded-lg text-sm flex items-center gap-3 border border-slate-100 hover:border-blue-900/20 cursor-pointer transition-all hover:bg-blue-50/30 group">
+                                <span className="w-5 h-5 flex items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-black text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900 transition-all">
+                                  {String.fromCharCode(65 + oIdx)}
+                                </span>
+                                <span className="font-body text-slate-700 font-medium"><Latex>{opt}</Latex></span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 space-y-2">
                         <button 
-                          onClick={handleMoreQuestions}
-                          disabled={isAddingMore}
-                          className="w-full py-2 border-2 border-dashed border-blue-200 bg-blue-50/20 rounded-lg text-blue-900 font-bold text-[9px] uppercase tracking-widest hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          onClick={() => setShowExtractedSolutions(p => ({ ...p, [currentExtractIdx]: !p[currentExtractIdx] }))}
+                          className="flex items-center gap-2 text-blue-900 font-bold text-xs group"
                         >
-                          {isAddingMore ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
-                          {isAddingMore ? 'Extending Analysis...' : 'Load More Questions'}
+                          <ChevronDown 
+                            size={14} 
+                            className={`transition-transform duration-300 ${showExtractedSolutions[currentExtractIdx] ? 'rotate-180' : ''}`} 
+                          />
+                          {showExtractedSolutions[currentExtractIdx] ? 'Hide Solution' : 'Show Solution & Explanation'}
                         </button>
+                        {showExtractedSolutions[currentExtractIdx] && (
+                          <div className="mt-1 p-3 bg-blue-50/30 rounded-lg text-xs leading-relaxed text-slate-600 font-body border border-blue-100/50 animate-in zoom-in-95 duration-200">
+                            <p className="font-black text-blue-900 text-[10px] uppercase tracking-widest mb-1 flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span> Solution
+                            </p>
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-800"><Latex>{extractedQuestions[currentExtractIdx].answer}</Latex></p>
+                              <div className="italic prose prose-blue max-w-none text-xs"><Latex>{extractedQuestions[currentExtractIdx].solution}</Latex></div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
 
+                    {/* Navigation Controls */}
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setCurrentExtractIdx(prev => Math.max(0, prev - 1))}
+                        disabled={currentExtractIdx === 0}
+                        className="flex-1 py-2 bg-white border border-slate-200 rounded-lg font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                      >
+                        <ChevronLeft size={12} /> Previous
+                      </button>
+                      <button 
+                        onClick={() => setCurrentExtractIdx(prev => Math.min(extractedQuestions.length - 1, prev + 1))}
+                        disabled={currentExtractIdx === extractedQuestions.length - 1}
+                        className="flex-1 py-2 bg-white border border-slate-200 rounded-lg font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                      >
+                        Next <ChevronRight size={12} />
+                      </button>
+                    </div>
+
+                    {/* Load More Button */}
+                    <button 
+                      onClick={handleMoreQuestions}
+                      disabled={isAddingMore}
+                      className="w-full py-2 border-2 border-dashed border-blue-200 bg-blue-50/20 rounded-lg text-blue-900 font-bold text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isAddingMore ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
+                      {isAddingMore ? 'Extending Analysis...' : 'Load More Questions'}
+                    </button>
+                  </div>
+                )}
                     {/* Footer Info */}
                     <div className="flex justify-between items-center px-4 py-8 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
                       <div className="flex items-center gap-2">
