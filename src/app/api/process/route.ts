@@ -17,6 +17,43 @@ async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promis
   return fetch(url, options);
 }
 
+// Robust JSON extraction helper
+function extractAndCleanJson(raw: string) {
+  try {
+    // 1. Remove markdown blocks if present
+    let clean = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // 2. Find the bounds of the actual JSON object or array
+    const firstBrace = clean.indexOf('{');
+    const firstBracket = clean.indexOf('[');
+    const startIdx = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
+    
+    const lastBrace = clean.lastIndexOf('}');
+    const lastBracket = clean.lastIndexOf(']');
+    const endIdx = Math.max(lastBrace, lastBracket);
+
+    if (startIdx === -1 || endIdx === -1) throw new Error("No JSON found");
+    
+    clean = clean.substring(startIdx, endIdx + 1);
+
+    // 3. Common AI JSON sins: Trailing commas
+    clean = clean.replace(/,(\s*[\]}])/g, '$1');
+    
+    // 4. Handle escaped newlines that are sometimes broken
+    clean = clean.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+    
+    // Attempt parse
+    return JSON.parse(clean);
+  } catch (e) {
+    // Last ditch: just try basic parse if cleaning failed logic
+    try {
+      return JSON.parse(raw.trim());
+    } catch (finalError) {
+      throw new Error(`Parse failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   console.log("AI Pipeline: Starting request...");
   try {
@@ -98,16 +135,7 @@ export async function POST(req: NextRequest) {
       const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
       
       try {
-        // Find the first '{' and the last '}' to handle any surrounding text
-        const firstBrace = rawText.indexOf('{');
-        const lastBrace = rawText.lastIndexOf('}');
-        
-        if (firstBrace === -1 || lastBrace === -1) {
-          throw new Error("No JSON object found in response");
-        }
-        
-        const cleanJson = rawText.substring(firstBrace, lastBrace + 1);
-        const result = JSON.parse(cleanJson);
+        const result = extractAndCleanJson(rawText);
         return NextResponse.json(result);
       } catch (e) {
         console.error("AI Pipeline: Extraction JSON Parse Error", e);
