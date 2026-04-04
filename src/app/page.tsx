@@ -623,14 +623,14 @@ export default function QuestionBreaker() {
                   <button 
                     onClick={() => setInputSidebarOpen(!inputSidebarOpen)}
                     className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-[60] w-6 h-12 bg-white border border-slate-200 border-r-0 rounded-l-xl items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm transition-all active:scale-95 group"
-                    style={{ right: inputSidebarOpen ? '384px' : '0px', transition: 'right 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+                    style={{ right: inputSidebarOpen ? '50%' : '0px', transition: 'right 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
                   >
                     {inputSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
                   </button>
                 )}
 
                 {/* Right: Input Column (Source Materials) */}
-                <section className={`hidden md:flex ${inputSidebarOpen ? 'w-96 px-6 md:px-8 lg:px-12 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto scrollbar-hide space-y-8 md:space-y-12`}>
+                <section className={`hidden md:flex ${inputSidebarOpen ? 'md:w-1/2 px-6 md:px-8 lg:px-12 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto scrollbar-hide space-y-8 md:space-y-12`}>
                   <header className="md:block whitespace-nowrap overflow-hidden">
                     <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-600">Current Module</span>
                     <h2 className="font-headline text-2xl md:text-3xl font-bold text-slate-900 mt-1 md:mt-0">Source Materials</h2>
