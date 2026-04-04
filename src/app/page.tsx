@@ -701,9 +701,25 @@ export default function QuestionBreaker() {
             ) : (
               /* BREAKER VIEW (Mobile Optimized) */
               <div className="flex flex-col md:flex-row h-full overflow-hidden relative">
+                {/* Mobile Tab Switcher */}
+                <div className="md:hidden flex bg-white border-b border-slate-200/60 p-1 m-4 rounded-xl shadow-sm shrink-0">
+                  <button 
+                    onClick={() => setBreakerTab('input')}
+                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${breakerTab === 'input' ? 'bg-blue-900 text-white shadow-md' : 'text-slate-400'}`}
+                  >
+                    Question
+                  </button>
+                  <button 
+                    onClick={() => setBreakerTab('output')}
+                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${breakerTab === 'output' ? 'bg-blue-900 text-white shadow-md' : 'text-slate-400'}`}
+                  >
+                    Variations
+                  </button>
+                </div>
+
                 {/* Left: Output Column (Variations) */}
-                <section className="flex-1 p-6 md:p-8 lg:p-12 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-200/60 overflow-y-auto scrollbar-hide transition-all duration-300">
-                  <div className="space-y-8">
+                <section className={`flex-1 p-6 md:p-8 lg:p-12 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-200/60 overflow-y-auto scrollbar-hide transition-all duration-300 ${breakerTab === 'output' ? 'flex' : 'hidden md:flex'}`}>
+                  <div className="space-y-8 w-full">
                     <div className="space-y-6">
                       <div className="flex items-center justify-between border-b border-slate-200/30 pb-4">
                         <h3 className="text-xl font-headline font-bold tracking-tight text-slate-900">Active Variations</h3>
@@ -790,7 +806,7 @@ export default function QuestionBreaker() {
                 )}
 
                 {/* Right: Input Column (Source Materials) */}
-                <section className={`hidden md:flex ${inputSidebarOpen ? 'md:w-1/2 px-6 md:px-10 lg:px-14 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto space-y-8 md:space-y-12`}>
+                <section className={`${breakerTab === 'input' ? 'flex' : 'hidden md:flex'} ${inputSidebarOpen ? 'md:w-1/2 px-6 md:px-10 lg:px-14 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto space-y-8 md:space-y-12`}>
                   <header className="md:block">
                     <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-900">Current Module</span>
                     <h2 className="font-headline text-2xl md:text-3xl font-bold text-slate-900 mt-1 md:mt-0">Source Materials</h2>
@@ -1116,20 +1132,16 @@ export default function QuestionBreaker() {
 
         {/* MOBILE BOTTOM NAV */}
         <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-safe pt-2 bg-white/90 backdrop-blur-md border-t border-slate-200/20 z-[160]">
-          <button onClick={() => { setActiveMode('breaker'); setShowHistory(false); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'breaker' && !showHistory && !showSettings ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
-            <BrainCircuit size={20} />
+          <button onClick={() => { setActiveMode('breaker'); setShowHistory(false); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-6 py-2 transition-all active:scale-90 ${activeMode === 'breaker' && !showHistory && !showSettings ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
+            <BrainCircuit size={22} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Breaker</span>
           </button>
-          <button onClick={() => { setActiveMode('extractor'); setShowHistory(false); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'extractor' && !showHistory && !showSettings ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
-            <Sparkles size={20} />
+          <button onClick={() => { setActiveMode('extractor'); setShowHistory(false); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-6 py-2 transition-all active:scale-90 ${activeMode === 'extractor' && !showHistory && !showSettings ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
+            <Sparkles size={22} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Extractor</span>
           </button>
-          <button onClick={() => { startNewQuestion(); setShowHistory(false); setShowSettings(false); }} className="flex flex-col items-center justify-center text-blue-900 px-3 py-2 transition-all active:scale-90">
-            <PlusCircle size={24} className="text-blue-900" />
-            <span className="text-[10px] font-black uppercase tracking-widest mt-1">New</span>
-          </button>
-          <button onClick={() => { setShowHistory(true); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${showHistory ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
-            <History size={20} />
+          <button onClick={() => { setShowHistory(true); setShowSettings(false); }} className={`flex flex-col items-center justify-center px-6 py-2 transition-all active:scale-90 ${showHistory ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
+            <History size={22} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">History</span>
           </button>
         </nav>
