@@ -103,7 +103,9 @@ export default function QuestionBreaker() {
       const savedRoomId = localStorage.getItem('qb_active_room_id');
       const savedCode = localStorage.getItem('qb_pairing_code');
       const savedLevel = localStorage.getItem('qb_extract_level');
+      const savedSubject = localStorage.getItem('qb_extract_subject');
       if (savedLevel) setExtractLevel(savedLevel);
+      if (savedSubject) setExtractSubject(savedSubject);
       if (savedRoomId) {
         setRoomId(savedRoomId);
         setPairingCode(savedCode || '');
