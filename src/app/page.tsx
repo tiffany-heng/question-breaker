@@ -823,17 +823,23 @@ export default function QuestionBreaker() {
                       <h2 className="font-headline text-3xl font-bold text-slate-900">Extracted Questions</h2>
                     </header>
 
-                    {/* Simple Concept Breakdown */}
+                    {/* Terminal Style Concept Breakdown */}
                     {extractConceptTree.length > 0 && (
-                      <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                          <Terminal size={14} /> Core Concepts identified
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="bg-[#12141d] rounded-2xl p-8 overflow-hidden relative group shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
+                        <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                          <div className="flex gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/40"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/40"></div>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Core_Concepts_Breakdown.sh</span>
+                        </div>
+                        <div className="font-mono text-xs space-y-3 text-left leading-relaxed">
                           {extractConceptTree.map((concept, idx) => (
-                            <div key={idx} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
-                              <span className="text-blue-900 font-black text-xs">$</span>
-                              <div className="text-slate-700 text-xs font-medium leading-relaxed">
+                            <div key={idx} className="flex gap-4">
+                              <span className="text-blue-400">$</span>
+                              <div className="text-slate-300">
                                 <Latex>{concept}</Latex>
                               </div>
                             </div>
