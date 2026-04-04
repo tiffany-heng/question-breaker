@@ -81,6 +81,7 @@ export default function QuestionBreaker() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isAddingMore, setIsAddingMore] = useState(false);
   const [showExtractedSolutions, setShowExtractedSolutions] = useState<Record<number, boolean>>({});
+  const [showExtractionToast, setShowExtractionToast] = useState(false);
 
   // Workflow States
   const [isQuestionTextMode, setIsQuestionTextMode] = useState(false);
@@ -284,6 +285,8 @@ export default function QuestionBreaker() {
         setExtractedQuestions(result.questions);
         setExtractConceptTree(result.conceptTree || []);
         setAllConceptsTested(!!result.allConceptsTested);
+        setShowExtractionToast(true);
+        setTimeout(() => setShowExtractionToast(false), 3000);
       } else if (result.error) alert("Extraction Error: " + result.error);
     } catch (err: any) { alert("Network Error: " + err.message); }
     finally { setIsExtracting(false); }
@@ -420,7 +423,6 @@ export default function QuestionBreaker() {
       <aside className={`hidden md:flex ${sidebarOpen ? 'w-64 px-6 opacity-100 border-r border-slate-200/60' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} z-50 bg-white flex-col py-10 shrink-0 h-full transition-all duration-300 relative overflow-hidden`}>
         <div className="mb-12 px-2 whitespace-nowrap">
           <h1 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">Question Breaker</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1.5">Premium Pedagogy</p>
         </div>
 
         <nav className="flex-1 space-y-2 whitespace-nowrap">
@@ -809,7 +811,7 @@ export default function QuestionBreaker() {
                       className={`w-full py-3 bg-gradient-to-r from-blue-900 to-blue-800 text-white rounded-lg font-bold tracking-tight flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20 group ${isExtracting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.98]'}`}
                     >
                       {isExtracting ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />}
-                      {isExtracting ? 'Analyzing Corpus...' : 'Generate Questions'}
+                      {isExtracting ? 'Analyzing Text...' : 'Generate Questions'}
                     </button>
                   </div>
                 </section>
@@ -982,6 +984,17 @@ export default function QuestionBreaker() {
       </div>
       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => onSelectFile(e, activeUploadType)} />
       
+      {/* EXTRACTION COMPLETE TOAST */}
+      {showExtractionToast && (
+        <div className="fixed bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-blue-900 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Sparkles size={18} className="text-blue-300" />
+          <span>Generation Complete!</span>
+          <button onClick={() => setShowExtractionToast(false)} className="ml-2 p-1 hover:bg-white/10 rounded-full transition-colors">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* GLOBAL DIAGNOSTICS (Preserved) */}
       {debugLog && (
         <div className="fixed bottom-4 right-4 max-w-xs bg-red-900 text-white p-4 rounded-xl shadow-2xl text-[10px] font-mono z-[100] animate-in slide-in-from-bottom-2">
