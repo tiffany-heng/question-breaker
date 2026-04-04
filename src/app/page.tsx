@@ -397,19 +397,19 @@ export default function QuestionBreaker() {
     canvas.toBlob(async (blob) => { if (blob) await uploadToSupabase(new File([blob], `crop.jpg`, { type: 'image/jpeg' }), activeUploadType); }, 'image/jpeg', 1.0);
   };
 
-  if (isInitializing) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+  if (isInitializing) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-900" /></div>;
 
   return (
     <div className="h-screen bg-[#faf9fa] text-[#1b1c1d] font-sans antialiased selection:bg-[#d9e2ff] selection:text-[#001946] flex flex-col md:flex-row overflow-hidden">
       {/* MOBILE HEADER */}
       <header className="md:hidden fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl flex justify-between items-center px-6 py-4 border-b border-slate-200/60">
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowHistory(true)} className="text-blue-700 active:scale-90 transition-transform">
+          <button onClick={() => setShowHistory(true)} className="text-blue-900 active:scale-90 transition-transform">
             <History size={20} />
           </button>
           <h1 className="font-serif italic font-black text-blue-800 text-lg tracking-tight">Question Breaker</h1>
         </div>
-        <button className="text-blue-700 active:scale-90 transition-transform">
+        <button className="text-blue-900 active:scale-90 transition-transform">
           <Settings size={20} />
         </button>
       </header>
@@ -424,23 +424,23 @@ export default function QuestionBreaker() {
         <nav className="flex-1 space-y-2 whitespace-nowrap">
           <button 
             onClick={() => setActiveMode('breaker')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'breaker' ? 'text-blue-700 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'breaker' ? 'text-blue-900 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
           >
             <div className="flex items-center gap-4">
-              <BrainCircuit size={18} className={activeMode === 'breaker' ? 'text-blue-700' : 'text-slate-400'} />
+              <BrainCircuit size={18} className={activeMode === 'breaker' ? 'text-blue-900' : 'text-slate-400'} />
               <span>Breaker</span>
             </div>
-            {activeMode === 'breaker' && <div className="absolute right-0 h-4 w-[2.5px] bg-blue-700 rounded-full"></div>}
+            {activeMode === 'breaker' && <div className="absolute right-0 h-4 w-[2.5px] bg-blue-900 rounded-full"></div>}
           </button>
           <button 
             onClick={() => setActiveMode('extractor')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'extractor' ? 'text-blue-700 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium relative group ${activeMode === 'extractor' ? 'text-blue-900 bg-slate-50' : 'text-slate-500 hover:bg-slate-50'}`}
           >
             <div className="flex items-center gap-4">
-              <Sparkles size={18} className={activeMode === 'extractor' ? 'text-blue-700' : 'text-slate-400'} />
+              <Sparkles size={18} className={activeMode === 'extractor' ? 'text-blue-900' : 'text-slate-400'} />
               <span>Extractor</span>
             </div>
-            {activeMode === 'extractor' && <div className="absolute right-0 h-4 w-[2.5px] bg-blue-700 rounded-full"></div>}
+            {activeMode === 'extractor' && <div className="absolute right-0 h-4 w-[2.5px] bg-blue-900 rounded-full"></div>}
           </button>
         </nav>
 
@@ -485,7 +485,7 @@ export default function QuestionBreaker() {
             <div className="p-4 flex justify-between items-center text-white bg-slate-950 border-b border-white/5">
               <button onClick={() => setStatus('waiting')} className="p-2 hover:bg-white/10 rounded-full"><X /></button>
               <span className="font-bold text-xs uppercase tracking-widest">Adjust Crop Area</span>
-              <button onClick={handleConfirmCrop} className="bg-blue-600 px-8 py-2 rounded-full font-black text-xs uppercase shadow-xl hover:bg-blue-700 transition-all">Confirm Crop</button>
+              <button onClick={handleConfirmCrop} className="bg-blue-900 px-8 py-2 rounded-full font-black text-xs uppercase shadow-xl hover:bg-blue-900 transition-all">Confirm Crop</button>
             </div>
             <div className="flex-1 overflow-auto flex items-center justify-center p-8">
               <ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)}>
@@ -504,7 +504,7 @@ export default function QuestionBreaker() {
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={18}/></button>
               </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-3">
-                <button onClick={startNewQuestion} className="w-full p-4 border-2 border-dashed border-blue-100 rounded-xl text-blue-600 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-50 transition-all mb-4">
+                <button onClick={startNewQuestion} className="w-full p-4 border-2 border-dashed border-blue-100 rounded-xl text-blue-900 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-50 transition-all mb-4">
                   <Plus size={16}/> New Question
                 </button>
                 {history.map((item, idx) => (
@@ -528,7 +528,7 @@ export default function QuestionBreaker() {
               <div className="flex-1 flex flex-col items-center justify-center p-6 h-full bg-slate-50">
                 <div className="max-w-sm w-full space-y-8 bg-white p-10 rounded-2xl shadow-sm border border-slate-200/50 text-center">
                   <h1 className="text-3xl font-serif font-black text-slate-900 tracking-tighter">Question Breaker</h1>
-                  <button onClick={createRoom} className="w-full flex items-center justify-center gap-3 p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-200">
+                  <button onClick={createRoom} className="w-full flex items-center justify-center gap-3 p-4 bg-blue-900 hover:bg-blue-900 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-200">
                     <Plus size={20} />
                     <span>Start New Session</span>
                   </button>
@@ -550,7 +550,7 @@ export default function QuestionBreaker() {
                     <div className="space-y-6">
                       <div className="flex items-center gap-3 border-b border-slate-200/30 pb-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Active Variations</span>
-                        {status === 'ready' && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{data.variations.length} Generated</span>}
+                        {status === 'ready' && <span className="bg-blue-100 text-blue-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{data.variations.length} Generated</span>}
                       </div>
 
                       {status === 'ready' ? (
@@ -564,7 +564,7 @@ export default function QuestionBreaker() {
                               <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${expandedVariations[i] ? 'border-blue-200 ring-1 ring-blue-50' : 'border-slate-200/60'}`}>
                                 <div className="p-5 flex justify-between items-start cursor-pointer hover:bg-slate-50/50 transition-colors rounded-t-2xl" onClick={() => setExpandedVariations(p => ({ ...p, [i]: !p[i] }))}>
                                   <div className="space-y-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">{v.category}</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">{v.category}</span>
                                     <h3 className="font-headline font-bold text-lg text-slate-900 line-clamp-1">{label}</h3>
                                   </div>
                                   <button className="text-slate-400">
@@ -581,7 +581,7 @@ export default function QuestionBreaker() {
                                   {!showSolutions[i] ? (
                                     <button 
                                       onClick={() => setShowSolutions(p => ({ ...p, [i]: true }))}
-                                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-blue-100 transition-all"
+                                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-900 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-blue-100 transition-all"
                                     >
                                       <Eye size={14}/> Show Solution
                                     </button>
@@ -598,7 +598,7 @@ export default function QuestionBreaker() {
                                   )}
                                   
                                   <div className="flex gap-4 pt-2">
-                                    <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 active:scale-95 transition-all">
+                                    <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-900 active:scale-95 transition-all">
                                       Copy Question <ChevronRight size={12}/>
                                     </button>
                                     <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -635,7 +635,7 @@ export default function QuestionBreaker() {
                 {/* Right: Input Column (Source Materials) */}
                 <section className={`hidden md:flex ${inputSidebarOpen ? 'md:w-1/2 px-6 md:px-8 lg:px-12 border-l border-slate-200/60 opacity-100' : 'w-0 px-0 opacity-0 pointer-events-none border-none'} bg-white flex-col py-10 md:py-12 shrink-0 h-full transition-all duration-300 relative overflow-y-auto scrollbar-hide space-y-8 md:space-y-12`}>
                   <header className="md:block whitespace-nowrap overflow-hidden">
-                    <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-600">Current Module</span>
+                    <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-900">Current Module</span>
                     <h2 className="font-headline text-2xl md:text-3xl font-bold text-slate-900 mt-1 md:mt-0">Source Materials</h2>
                     <p className="text-sm text-slate-500 mt-2 font-medium italic md:not-italic">Upload the question and the ideal solution path.</p>
                   </header>
@@ -647,7 +647,7 @@ export default function QuestionBreaker() {
                         <div className="space-y-2">
                            <div className="flex justify-between items-center px-1">
                              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
-                             <button onClick={() => setIsQuestionTextMode(false)} className="text-[10px] font-bold uppercase text-blue-600 hover:underline">Switch to Image</button>
+                             <button onClick={() => setIsQuestionTextMode(false)} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Image</button>
                            </div>
                            <textarea placeholder="Paste or type question here..." value={data.questionText} onChange={(e) => setData(p => ({ ...p, questionText: e.target.value }))} onBlur={(e) => saveToDb({ questionText: e.target.value })} className="question-input w-full min-h-[180px] bg-slate-50/50 rounded-xl p-6 text-base border border-slate-200 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all resize-none font-body leading-relaxed" />
                         </div>
@@ -656,7 +656,7 @@ export default function QuestionBreaker() {
                           <div className="space-y-2">
                             <div className="flex justify-between items-center px-1">
                               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">The Question</label>
-                              <button onClick={() => setIsQuestionTextMode(true)} className="text-[10px] font-bold uppercase text-blue-600 hover:underline">Switch to Text</button>
+                              <button onClick={() => setIsQuestionTextMode(true)} className="text-[10px] font-bold uppercase text-blue-900 hover:underline">Switch to Text</button>
                             </div>
                             <div className="relative group">
                               <img src={data.questionImageUrl} alt="Question" className="w-full rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-95 transition-all" onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} />
@@ -667,7 +667,7 @@ export default function QuestionBreaker() {
                           /* CIRCULAR CAPTURE ZONE (MOBILE SNIPPET) */
                           <div className="relative group aspect-[4/3] md:aspect-auto md:h-64 rounded-full md:rounded-xl overflow-hidden bg-slate-50 flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-slate-200 transition-all hover:border-blue-400">
                             <div className="z-10 flex flex-col items-center gap-4">
-                              <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-16 h-16 rounded-full bg-blue-700 flex items-center justify-center text-white shadow-xl ring-8 ring-blue-100/50 active:scale-95 transition-transform">
+                              <button onClick={() => { setActiveUploadType('question'); fileInputRef.current?.click(); }} className="w-16 h-16 rounded-full bg-blue-900 flex items-center justify-center text-white shadow-xl ring-8 ring-blue-100/50 active:scale-95 transition-transform">
                                 <ImageIcon size={28} />
                               </button>
                               <div className="text-center">
@@ -692,12 +692,12 @@ export default function QuestionBreaker() {
                     <div className="bg-slate-50 rounded-2xl p-6 space-y-4 border border-slate-200/60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Verified size={18} className="text-blue-600" />
+                          <Verified size={18} className="text-blue-900" />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Solution Reference</span>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" checked={isSolutionEnabled} onChange={(e) => setIsSolutionEnabled(e.target.checked)} className="sr-only peer" />
-                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-700"></div>
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-900"></div>
                         </label>
                       </div>
                       {isSolutionEnabled && (
@@ -725,13 +725,13 @@ export default function QuestionBreaker() {
                   {/* Submission Button */}
                   <div className="pt-4 flex flex-col items-center">
                     {(data.questionImageUrl || data.questionText) && status !== 'processing' && status !== 'ready' && (
-                      <button onClick={handleProcessWithAI} className="w-full py-5 bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-full font-bold tracking-tight shadow-xl shadow-blue-200/50 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-95 transition-all group">
+                      <button onClick={handleProcessWithAI} className="w-full py-5 bg-gradient-to-r from-blue-900 to-blue-800 text-white rounded-full font-bold tracking-tight shadow-xl shadow-blue-900/20 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-95 transition-all group">
                         <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />
                         <span>Submit to Gemini</span>
                       </button>
                     )}
                     {status === 'ready' && (
-                      <button onClick={startNewQuestion} className="w-full py-4 border border-blue-200 rounded-full text-blue-600 font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-all bg-white shadow-sm active:scale-95">
+                      <button onClick={startNewQuestion} className="w-full py-4 border border-blue-200 rounded-full text-blue-900 font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-all bg-white shadow-sm active:scale-95">
                         <Plus size={18}/> New Analysis
                       </button>
                     )}
@@ -752,7 +752,7 @@ export default function QuestionBreaker() {
                 {/* Top Section: Source Material Entry */}
                 <section className="space-y-8">
                   <header className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600">Workspace</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-900">Workspace</span>
                     <h2 className="font-headline text-3xl font-bold text-slate-900">Source Material</h2>
                   </header>
                   
@@ -799,7 +799,7 @@ export default function QuestionBreaker() {
                     <button 
                       onClick={handleExtract}
                       disabled={isExtracting || !extractContent.trim()}
-                      className={`w-full py-4 bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-xl font-bold tracking-tight flex items-center justify-center gap-2 transition-all shadow-xl shadow-blue-200/50 group ${isExtracting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.98]'}`}
+                      className={`w-full py-4 bg-gradient-to-r from-blue-900 to-blue-800 text-white rounded-xl font-bold tracking-tight flex items-center justify-center gap-2 transition-all shadow-xl shadow-blue-900/20 group ${isExtracting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.98]'}`}
                     >
                       {isExtracting ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />}
                       {isExtracting ? 'Analyzing Corpus...' : 'Generate Questions'}
@@ -814,27 +814,21 @@ export default function QuestionBreaker() {
                 {(extractedQuestions.length > 0 || extractConceptTree.length > 0) && (
                   <section className="space-y-8 pb-20">
                     <header className="space-y-2">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600">Output</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-blue-900">Output</span>
                       <h2 className="font-headline text-3xl font-bold text-slate-900">Extracted Questions</h2>
                     </header>
 
-                    {/* Terminal Style Concept Breakdown */}
+                    {/* Simple Concept Breakdown */}
                     {extractConceptTree.length > 0 && (
-                      <div className="bg-[#12141d] rounded-2xl p-8 overflow-hidden relative group shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
-                        <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
-                          <div className="flex gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/40"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/40"></div>
-                          </div>
-                          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Core_Concepts_Breakdown.sh</span>
-                        </div>
-                        <div className="font-mono text-xs space-y-3 text-left leading-relaxed">
+                      <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                          <Terminal size={14} /> Core Concepts identified
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {extractConceptTree.map((concept, idx) => (
-                            <div key={idx} className="flex gap-4">
-                              <span className="text-blue-400">$</span>
-                              <div className="text-slate-300">
+                            <div key={idx} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                              <span className="text-blue-900 font-black text-xs">$</span>
+                              <div className="text-slate-700 text-xs font-medium leading-relaxed">
                                 <Latex>{concept}</Latex>
                               </div>
                             </div>
@@ -846,39 +840,39 @@ export default function QuestionBreaker() {
                     {/* Single Question Viewer Card */}
                     {extractedQuestions.length > 0 && (
                       <div className="space-y-6">
-                        <div className="bg-white rounded-2xl p-8 md:p-12 shadow-sm border border-slate-200/60 min-h-[calc(100vh-18rem)] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
-                          <div className="space-y-10">
+                        <div className="bg-white rounded-2xl p-8 md:p-10 shadow-sm border border-slate-200/60 min-h-[400px] flex flex-col justify-between text-left transition-all animate-in fade-in slide-in-from-right-4 duration-500">
+                          <div className="space-y-8">
                             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-slate-100 pb-6">
                               <div className="flex items-center gap-3">
-                                <span className="px-3 py-1 bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider rounded">
+                                <span className="px-3 py-1 bg-blue-900 text-white text-xs font-black uppercase tracking-wider rounded">
                                   {extractedQuestions[currentExtractIdx].type}
                                 </span>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-3">
+                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-3">
                                   Question {currentExtractIdx + 1} of {extractedQuestions.length}
                                 </span>
                               </div>
                               {extractedQuestions[currentExtractIdx].concept && (
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Concept:</span>
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Concept:</span>
+                                  <span className="text-xs font-black uppercase tracking-widest text-blue-900 bg-blue-50 px-2 py-1 rounded">
                                     <Latex>{extractedQuestions[currentExtractIdx].concept}</Latex>
                                   </span>
                                 </div>
                               )}
                             </div>
                             
-                            <h3 className="font-headline text-3xl md:text-4xl font-medium text-slate-900 leading-tight">
+                            <h3 className="font-headline text-xl md:text-2xl font-medium text-slate-900 leading-tight">
                               <Latex>{extractedQuestions[currentExtractIdx].question}</Latex>
                             </h3>
                             
                             {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
-                              <div className="grid gap-4 py-6">
+                              <div className="grid gap-3 py-4">
                                 {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
-                                  <div key={oIdx} className="p-5 bg-slate-50/50 rounded-2xl text-lg flex items-center gap-5 border border-slate-100 hover:border-blue-200 cursor-pointer transition-all hover:bg-blue-50/30 group">
-                                    <span className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-200 text-sm font-black text-slate-400 group-hover:text-blue-600 group-hover:border-blue-600 transition-all">
+                                  <div key={oIdx} className="p-4 bg-slate-50/50 rounded-2xl text-base flex items-center gap-4 border border-slate-100 hover:border-blue-900/20 cursor-pointer transition-all hover:bg-blue-50/30 group">
+                                    <span className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-slate-200 text-xs font-black text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900 transition-all">
                                       {String.fromCharCode(65 + oIdx)}
                                     </span>
-                                    <span className="font-body text-slate-700 font-medium"><Latex>{opt}</Latex></span>
+                                    <span className="font-body text-slate-700 font-medium text-sm md:text-base"><Latex>{opt}</Latex></span>
                                   </div>
                                 ))}
                               </div>
@@ -888,7 +882,7 @@ export default function QuestionBreaker() {
                           <div className="pt-8 border-t border-slate-100 space-y-4">
                             <button 
                               onClick={() => setShowExtractedSolutions(p => ({ ...p, [currentExtractIdx]: !p[currentExtractIdx] }))}
-                              className="flex items-center gap-2 text-blue-600 font-bold text-sm group"
+                              className="flex items-center gap-2 text-blue-900 font-bold text-sm group"
                             >
                               <ChevronDown 
                                 size={18} 
@@ -898,8 +892,8 @@ export default function QuestionBreaker() {
                             </button>
                             {showExtractedSolutions[currentExtractIdx] && (
                               <div className="mt-4 p-6 bg-blue-50/30 rounded-2xl text-sm leading-relaxed text-slate-600 font-body border border-blue-100/50 animate-in zoom-in-95 duration-200">
-                                <p className="font-black text-blue-700 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Solution
+                                <p className="font-black text-blue-900 text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span> Solution
                                 </p>
                                 <div className="space-y-3">
                                   <p className="font-bold text-slate-800"><Latex>{extractedQuestions[currentExtractIdx].answer}</Latex></p>
@@ -915,14 +909,14 @@ export default function QuestionBreaker() {
                           <button 
                             onClick={() => setCurrentExtractIdx(prev => Math.max(0, prev - 1))}
                             disabled={currentExtractIdx === 0}
-                            className="flex-1 py-4 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                            className="flex-1 py-4 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                           >
                             <ChevronLeft size={16} /> Previous
                           </button>
                           <button 
                             onClick={() => setCurrentExtractIdx(prev => Math.min(extractedQuestions.length - 1, prev + 1))}
                             disabled={currentExtractIdx === extractedQuestions.length - 1}
-                            className="flex-1 py-4 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                            className="flex-1 py-4 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-blue-900 hover:border-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                           >
                             Next <ChevronRight size={16} />
                           </button>
@@ -932,7 +926,7 @@ export default function QuestionBreaker() {
                         <button 
                           onClick={handleMoreQuestions}
                           disabled={isAddingMore}
-                          className="w-full py-4 mt-2 border-2 border-dashed border-blue-200 bg-blue-50/20 rounded-xl text-blue-600 font-bold text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          className="w-full py-4 mt-2 border-2 border-dashed border-blue-200 bg-blue-50/20 rounded-xl text-blue-900 font-bold text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                           {isAddingMore ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
                           {isAddingMore ? 'Extending Analysis...' : 'Load More Questions'}
@@ -947,8 +941,8 @@ export default function QuestionBreaker() {
                         <span>Generated by Pedagogy AI v4.2</span>
                       </div>
                       <div className="flex gap-6">
-                        <button className="hover:text-blue-600 transition-colors">Export PDF</button>
-                        <button className="hover:text-blue-600 transition-colors">Sync to Notion</button>
+                        <button className="hover:text-blue-900 transition-colors">Export PDF</button>
+                        <button className="hover:text-blue-900 transition-colors">Sync to Notion</button>
                       </div>
                     </div>
                   </section>
@@ -960,11 +954,11 @@ export default function QuestionBreaker() {
 
         {/* MOBILE BOTTOM NAV */}
         <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-safe pt-2 bg-white/90 backdrop-blur-md border-t border-slate-200/20 z-50">
-          <button onClick={() => setActiveMode('breaker')} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'breaker' ? 'text-blue-700 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
+          <button onClick={() => setActiveMode('breaker')} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'breaker' ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
             <BrainCircuit size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Breaker</span>
           </button>
-          <button onClick={() => setActiveMode('extractor')} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'extractor' ? 'text-blue-700 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
+          <button onClick={() => setActiveMode('extractor')} className={`flex flex-col items-center justify-center px-3 py-2 transition-all active:scale-90 ${activeMode === 'extractor' ? 'text-blue-900 bg-blue-50/50 rounded-xl' : 'text-slate-400'}`}>
             <Sparkles size={20} />
             <span className="text-[10px] font-bold uppercase tracking-widest mt-1">Extractor</span>
           </button>
