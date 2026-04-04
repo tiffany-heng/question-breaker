@@ -514,7 +514,7 @@ export default function QuestionBreaker() {
               /* BREAKER VIEW (Mobile Optimized) */
               <div className="flex flex-col md:flex-row h-full overflow-hidden">
                 {/* Left: Input Column */}
-                <section className="w-full md:w-[60%] p-6 md:p-10 bg-white md:overflow-y-auto scrollbar-hide space-y-8 md:space-y-12">
+                <section className="w-full md:w-[55%] lg:w-[60%] p-6 md:p-8 lg:p-12 bg-white md:overflow-y-auto scrollbar-hide space-y-8 md:space-y-12">
                   <header className="md:block">
                     <span className="md:hidden label-style text-[10px] font-bold uppercase tracking-widest text-blue-600">Current Module</span>
                     <h2 className="font-headline text-2xl md:text-3xl font-bold text-slate-900 mt-1 md:mt-0">Source Materials</h2>
@@ -626,7 +626,7 @@ export default function QuestionBreaker() {
                 </section>
 
                 {/* Right: Output Column */}
-                <section className="w-full md:w-[40%] p-6 md:p-10 bg-slate-50/50 border-t md:border-t-0 md:border-l border-slate-200/60 overflow-y-auto scrollbar-hide">
+                <section className="w-full md:w-[45%] lg:w-[40%] p-6 md:p-8 lg:p-12 bg-slate-50/50 border-t md:border-t-0 md:border-l border-slate-200/60 overflow-y-auto scrollbar-hide">
                   <div className="space-y-8">
                     {/* Meta Cards (Desktop Only Labels) */}
                     <div className="hidden md:grid grid-cols-12 gap-5">
@@ -658,25 +658,42 @@ export default function QuestionBreaker() {
                       {status === 'ready' ? (
                         <div className="space-y-4">
                           {data.variations.map((v, i) => (
-                            <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${showSolutions[i] ? 'border-blue-200 ring-1 ring-blue-50' : 'border-slate-200/60'}`}>
-                              <div className="p-5 flex justify-between items-start" onClick={() => setShowSolutions(p => ({ ...p, [i]: !p[i] }))}>
+                            <div key={i} className={`bg-white rounded-2xl shadow-sm border transition-all ${expandedVariations[i] ? 'border-blue-200 ring-1 ring-blue-50' : 'border-slate-200/60'}`}>
+                              <div className="p-5 flex justify-between items-start cursor-pointer hover:bg-slate-50/50 transition-colors rounded-t-2xl" onClick={() => setExpandedVariations(p => ({ ...p, [i]: !p[i] }))}>
                                 <div className="space-y-1">
                                   <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">{v.category}</span>
                                   <h3 className="font-headline font-bold text-lg text-slate-900 line-clamp-1">Analysis Path {i + 1}</h3>
                                 </div>
                                 <button className="text-slate-400">
-                                  {showSolutions[i] ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                                  {expandedVariations[i] ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
                                 </button>
                               </div>
                               
-                              <div className={`px-5 pb-5 space-y-4 transition-all ${showSolutions[i] ? 'block' : 'hidden'}`}>
-                                <div className="font-body text-sm leading-relaxed text-slate-700 prose prose-blue max-w-none">
+                              <div className={`px-5 pb-5 space-y-4 transition-all ${expandedVariations[i] ? 'block' : 'hidden'}`}>
+                                <div className="font-body text-sm leading-relaxed text-slate-700 prose prose-blue max-w-none whitespace-pre-wrap">
                                   <Latex>{v.text}</Latex>
                                 </div>
+                                
                                 <div className="pt-4 border-t border-slate-50 space-y-3">
-                                  <div className="p-4 bg-slate-50 rounded-xl text-xs italic font-serif leading-relaxed text-slate-600 border border-slate-100">
-                                    <Latex>{v.solution}</Latex>
-                                  </div>
+                                  {!showSolutions[i] ? (
+                                    <button 
+                                      onClick={() => setShowSolutions(p => ({ ...p, [i]: true }))}
+                                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-blue-100 transition-all"
+                                    >
+                                      <Eye size={14}/> Show Solution
+                                    </button>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Step-by-Step Solution</span>
+                                        <button onClick={() => setShowSolutions(p => ({ ...p, [i]: false }))} className="text-slate-400 hover:text-slate-600"><EyeOff size={14}/></button>
+                                      </div>
+                                      <div className="p-4 bg-slate-50 rounded-xl text-xs italic font-serif leading-relaxed text-slate-600 border border-slate-100 whitespace-pre-wrap">
+                                        <Latex>{v.solution}</Latex>
+                                      </div>
+                                    </>
+                                  )}
+                                  
                                   <div className="flex gap-4 pt-2">
                                     <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 active:scale-95 transition-all">
                                       Copy Question <ChevronRight size={12}/>
