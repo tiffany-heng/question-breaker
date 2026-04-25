@@ -85,6 +85,7 @@ export default function QuestionBreaker() {
   const [isAddingMore, setIsAddingMore] = useState(false);
   const [showExtractedSolutions, setShowExtractedSolutions] = useState<Record<number, boolean>>({});
   const [showExtractionToast, setShowExtractionToast] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, boolean>>({});
 
   // Workflow States
   const [isQuestionTextMode, setIsQuestionTextMode] = useState(false);
@@ -1048,14 +1049,31 @@ export default function QuestionBreaker() {
 
                         {extractedQuestions[currentExtractIdx].options && extractedQuestions[currentExtractIdx].options.length > 0 && (
                           <div className="grid grid-cols-1 gap-2 py-1">
-                            {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => (
-                              <div key={oIdx} className="p-2.5 bg-slate-50/50 rounded-lg text-sm flex items-center gap-3 border border-slate-100 hover:border-blue-900/20 cursor-pointer transition-all hover:bg-blue-50/30 group">
-                                <span className="w-5 h-5 flex items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-black text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900 transition-all">
-                                  {String.fromCharCode(65 + oIdx)}
-                                </span>
-                                <span className="font-body text-slate-700 font-medium"><Latex>{opt}</Latex></span>
-                              </div>
-                            ))}
+                            {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => {
+                              const isSelected = !!selectedOptions[`${currentExtractIdx}-${oIdx}`];
+                              return (
+                                <div 
+                                  key={oIdx} 
+                                  onClick={() => setSelectedOptions(p => ({ ...p, [`${currentExtractIdx}-${oIdx}`]: !p[`${currentExtractIdx}-${oIdx}`] }))}
+                                  className={`p-2.5 rounded-lg text-sm flex items-center gap-3 border transition-all cursor-pointer group ${
+                                    isSelected 
+                                    ? 'bg-blue-900 border-blue-900 shadow-md' 
+                                    : 'bg-slate-50/50 border-slate-100 hover:border-blue-900/20 hover:bg-blue-50/30'
+                                  }`}
+                                >
+                                  <span className={`w-5 h-5 flex items-center justify-center rounded-full border text-[10px] font-black transition-all ${
+                                    isSelected 
+                                    ? 'bg-white border-white text-blue-900' 
+                                    : 'bg-white border-slate-200 text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900'
+                                  }`}>
+                                    {String.fromCharCode(65 + oIdx)}
+                                  </span>
+                                  <span className={`font-body font-medium transition-colors ${isSelected ? 'text-white' : 'text-slate-700'}`}>
+                                    <Latex>{opt}</Latex>
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
