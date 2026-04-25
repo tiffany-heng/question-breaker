@@ -9,7 +9,8 @@ export const maxDuration = 60; // Increase timeout for Vercel
 async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
   for (let i = 0; i < maxRetries; i++) {
     const res = await fetch(url, options);
-    if (res.status === 429) {
+    // Retry on Rate Limit (429) OR Service Unavailable (503)
+    if (res.status === 429 || res.status === 503) {
       const wait = Math.pow(2, i) * 1000; // Start with 1s instead of 3s
       await new Promise(r => setTimeout(r, wait));
       continue;

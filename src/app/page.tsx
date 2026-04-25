@@ -324,7 +324,9 @@ export default function QuestionBreaker() {
         fetchHistory(roomId!);
         setShowExtractionToast(true);
         setTimeout(() => setShowExtractionToast(false), 3000);
-      } else if (result.error) alert("Extraction Error: " + result.error);
+      } else if (result.error) {
+        alert(`Extraction Error: ${result.error}${result.message ? ` - ${result.message}` : ''}`);
+      }
     } catch (err: any) { alert("Network Error: " + err.message); }
     finally { setIsExtracting(false); }
   };
