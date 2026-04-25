@@ -86,6 +86,7 @@ export default function QuestionBreaker() {
   const [showExtractedSolutions, setShowExtractedSolutions] = useState<Record<number, boolean>>({});
   const [showExtractionToast, setShowExtractionToast] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, boolean>>({});
+  const [crossedOutOptions, setCrossedOutOptions] = useState<Record<string, boolean>>({});
 
   // Workflow States
   const [isQuestionTextMode, setIsQuestionTextMode] = useState(false);
@@ -1071,26 +1072,43 @@ export default function QuestionBreaker() {
                           <div className="grid grid-cols-1 gap-2 py-1">
                             {extractedQuestions[currentExtractIdx].options.map((opt, oIdx) => {
                               const isSelected = !!selectedOptions[`${currentExtractIdx}-${oIdx}`];
+                              const isCrossedOut = !!crossedOutOptions[`${currentExtractIdx}-${oIdx}`];
                               return (
                                 <div 
                                   key={oIdx} 
-                                  onClick={() => setSelectedOptions(p => ({ ...p, [`${currentExtractIdx}-${oIdx}`]: !p[`${currentExtractIdx}-${oIdx}`] }))}
-                                  className={`p-2.5 rounded-lg text-sm flex items-center gap-3 border transition-all cursor-pointer group ${
+                                  onClick={() => !isCrossedOut && setSelectedOptions(p => ({ ...p, [`${currentExtractIdx}-${oIdx}`]: !p[`${currentExtractIdx}-${oIdx}`] }))}
+                                  className={`p-2.5 rounded-lg text-sm flex items-center justify-between border transition-all cursor-pointer group ${
                                     isSelected 
                                     ? 'bg-blue-900 border-blue-900 shadow-md' 
-                                    : 'bg-slate-50/50 border-slate-100 hover:border-blue-900/20 hover:bg-blue-50/30'
+                                    : isCrossedOut 
+                                      ? 'bg-slate-100 border-slate-200 opacity-60' 
+                                      : 'bg-slate-50/50 border-slate-100 hover:border-blue-900/20 hover:bg-blue-50/30'
                                   }`}
                                 >
-                                  <span className={`w-5 h-5 flex items-center justify-center rounded-full border text-[10px] font-black transition-all ${
-                                    isSelected 
-                                    ? 'bg-white border-white text-blue-900' 
-                                    : 'bg-white border-slate-200 text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900'
-                                  }`}>
-                                    {String.fromCharCode(65 + oIdx)}
-                                  </span>
-                                  <span className={`font-body font-medium transition-colors ${isSelected ? 'text-white' : 'text-slate-700'}`}>
-                                    <Latex>{opt}</Latex>
-                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    <span className={`w-5 h-5 flex items-center justify-center rounded-full border text-[10px] font-black transition-all ${
+                                      isSelected 
+                                      ? 'bg-white border-white text-blue-900' 
+                                      : 'bg-white border-slate-200 text-slate-400 group-hover:text-blue-900 group-hover:border-blue-900'
+                                    }`}>
+                                      {String.fromCharCode(65 + oIdx)}
+                                    </span>
+                                    <span className={`font-body font-medium transition-all ${isSelected ? 'text-white' : isCrossedOut ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                                      <Latex>{opt}</Latex>
+                                    </span>
+                                  </div>
+                                  
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const key = `${currentExtractIdx}-${oIdx}`;
+                                      setCrossedOutOptions(p => ({ ...p, [key]: !p[key] }));
+                                      if (!crossedOutOptions[key]) setSelectedOptions(p => ({ ...p, [key]: false }));
+                                    }}
+                                    className={`p-1.5 rounded-full transition-colors ${isSelected ? 'text-white/40 hover:text-white' : 'text-slate-300 hover:text-blue-900 hover:bg-blue-50'}`}
+                                  >
+                                    {isCrossedOut ? <Eye size={14} /> : <EyeOff size={14} />}
+                                  </button>
                                 </div>
                               );
                             })}
