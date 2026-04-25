@@ -309,6 +309,15 @@ export default function QuestionBreaker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'extract', extractContent, subject: extractSubject, level: extractLevel })
       });
+      
+      const contentType = resp.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await resp.text();
+        console.error("Non-JSON response:", text);
+        alert("The server took too long to respond (Timeout). Try a shorter text or try again in a moment.");
+        return;
+      }
+
       const result = await resp.json();
       if (result.questions) {
         setExtractedQuestions(result.questions);
