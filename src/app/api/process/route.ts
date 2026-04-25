@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
            - STAGE 1 (Coverage): If there are UNTESTED concepts, you MUST generate questions for these uncovered topics first.
            - STAGE 2 (Synthesis): If ALL major concepts are already covered (allConceptsTested: true), generate "Hybrid Questions" that combine 2 or more concepts in complex, new ways.
         3. Create a COMPREHENSIVE CONCEPT TREE representing the main themes of the entire text in a directory-style format.
-        4. GENERATE a diverse mix of 3-5 BRAND NEW high-quality questions.
+        4. GENERATE a diverse mix of 2-3 BRAND NEW high-quality questions. (Keep it to 2-3 to ensure speed).
         5. For each concept, STRATEGICALLY choose the format (MCQ, MRQ, Short, or Open) that most effectively tests that specific level of understanding.
         
         REQUIREMENTS:
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
           contents: [{ role: "user", parts: [{ text: extractPrompt }] }],
           generationConfig: { 
             response_mime_type: "application/json",
-            max_output_tokens: 2048
+            max_output_tokens: 4096 // Increased to prevent truncation
           }
         })
       });
