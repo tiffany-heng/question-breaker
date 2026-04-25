@@ -132,22 +132,20 @@ export async function POST(req: NextRequest) {
           contents: [{ role: "user", parts: [{ text: extractPrompt }] }],
           generationConfig: { 
             response_mime_type: "application/json",
-            max_output_tokens: 4096 
-          },
-          safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-          ]
+            max_output_tokens: 2048 // Reduced slightly to be safer
+          }
         })
       });
 
       const proData = await proResp.json();
       
       if (proData.error) {
-        console.error("AI Pipeline: Extraction API Error:", proData.error);
-        return NextResponse.json({ error: "Gemini API Error", raw: JSON.stringify(proData.error) });
+        console.error("AI Pipeline: Extraction API Error:", JSON.stringify(proData.error, null, 2));
+        return NextResponse.json({ 
+          error: "Gemini API Error", 
+          message: proData.error.message || "Unknown API Error",
+          code: proData.error.code || 500
+        });
       }
 
       const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
