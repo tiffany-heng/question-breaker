@@ -350,12 +350,23 @@ export default function QuestionBreaker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'extract', extractContent, subject: extractSubject, level: extractLevel, existingQuestions: extractedQuestions })
       });
+
+      const contentType = resp.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await resp.text();
+        console.error("Non-JSON response:", text);
+        alert("The server took too long to respond (Timeout) during expansion. Try again in a moment.");
+        return;
+      }
+
       const result = await resp.json();
       if (result.questions) {
         setExtractedQuestions(prev => [...prev, ...result.questions]);
         if (result.conceptTree) setExtractConceptTree(result.conceptTree);
         setAllConceptsTested(!!result.allConceptsTested);
-      } else if (result.error) alert("Expansion Error: " + result.error);
+      } else if (result.error) {
+        alert(`Expansion Error: ${result.error}${result.message ? ` - ${result.message}` : ''}`);
+      }
     } catch (err: any) { alert("Network Error: " + err.message); }
     finally { setIsAddingMore(false); }
   };
