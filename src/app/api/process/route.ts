@@ -103,8 +103,7 @@ export async function POST(req: NextRequest) {
         - Match difficulty to ${level} standards.
         - Ensure total clarity and precision in phrasing.
         - CRITICAL: Questions MUST explicitly state the required answer format where applicable (e.g., "Give your answer to 2 decimal places," "Include units in your response," or "Select exactly three options").
-        - SOLUTION RIGOR: Provide a concise but complete step-by-step solution for the correct answer. 
-        - OPTION ANALYSIS (MCQ/MRQ): For MCQ/MRQ, provide a BRIEF (1-sentence) explanation for why the correct answer is right. Do NOT analyze incorrect options unless they are common misconceptions.
+        - OPTION ANALYSIS (MCQ/MRQ): For every MCQ/MRQ, the 'solution' MUST include a dedicated analysis for EVERY option. Use labels A, B, C, D to refer to the options. Explain why the correct ones are correct and why every incorrect one is wrong. Add DOUBLE newline characters (\\n\\n) after each option's explanation for clear separation.
         - SAFE LATEX: Wrap ALL mathematical expressions, formulas, and technical notations in $ delimiters (e.g., $E=mc^2$).
           - Use ONLY standard LaTeX commands. Avoid complex environments.
           - Use \\frac{a}{b} for fractions, \\sqrt{x} for roots, and ^ for exponents.
