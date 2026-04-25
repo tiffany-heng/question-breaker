@@ -4,11 +4,13 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const OCR_MODEL = 'gemini-2.5-flash-lite';
 const REASONING_MODEL = 'gemini-3.1-flash-lite-preview';
 
+export const maxDuration = 60; // Increase timeout for Vercel
+
 async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
   for (let i = 0; i < maxRetries; i++) {
     const res = await fetch(url, options);
     if (res.status === 429) {
-      const wait = Math.pow(2, i) * 3000; 
+      const wait = Math.pow(2, i) * 1000; // Start with 1s instead of 3s
       await new Promise(r => setTimeout(r, wait));
       continue;
     }
@@ -39,8 +41,9 @@ function extractAndCleanJson(raw: string) {
     // 3. Common AI JSON sins: Trailing commas
     clean = clean.replace(/,(\s*[\]}])/g, '$1');
     
-    // 4. Handle escaped newlines that are sometimes broken
-    clean = clean.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+    // 4. Handle escaped newlines that are sometimes broken - ONLY if they are inside strings
+    // Actually, with response_mime_type: 'application/json', we should trust the model more.
+    // The previous blanket replace(/\n/g, '\\n') was breaking valid JSON structure.
     
     // Attempt parse
     return JSON.parse(clean);
@@ -127,12 +130,31 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
           contents: [{ role: "user", parts: [{ text: extractPrompt }] }],
-          generationConfig: { response_mime_type: "application/json" }
+          generationConfig: { 
+            response_mime_type: "application/json",
+            max_output_tokens: 4096 
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
         })
       });
 
       const proData = await proResp.json();
+      
+      if (proData.error) {
+        console.error("AI Pipeline: Extraction API Error:", proData.error);
+        return NextResponse.json({ error: "Gemini API Error", raw: JSON.stringify(proData.error) });
+      }
+
       const rawText = proData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (!rawText) {
+        console.error("AI Pipeline: No candidates returned. Finish Reason:", proData.candidates?.[0]?.finishReason);
+        return NextResponse.json({ error: "Safety/Limit Block", detail: proData.candidates?.[0]?.finishReason });
+      }
       
       try {
         const result = extractAndCleanJson(rawText);
